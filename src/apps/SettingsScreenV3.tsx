@@ -8,6 +8,8 @@ export function SettingsScreenV3({
   autoSaveCharImages = true,
   offlineMode = false,
   enableVectorMemory = false,
+  autoRefreshEnabled = false,
+  autoRefreshInterval = 300,
   onUpdateSetting,
   onBack,
   onOpenIdentities,
@@ -15,6 +17,7 @@ export function SettingsScreenV3({
   onOpenThemes,
   onExport,
   onImport,
+  onOpenAutoMode,
 }: {
   innerThoughtOpacity?: number;
   swipeBackEnabled?: boolean;
@@ -22,6 +25,8 @@ export function SettingsScreenV3({
   autoSaveCharImages?: boolean;
   offlineMode?: boolean;
   enableVectorMemory?: boolean;
+  autoRefreshEnabled?: boolean;
+  autoRefreshInterval?: number;
   onUpdateSetting: (key: string, value: any) => void;
   onBack: () => void;
   onOpenIdentities?: () => void;
@@ -29,6 +34,7 @@ export function SettingsScreenV3({
   onOpenThemes?: () => void;
   onExport?: () => void;
   onImport?: () => void;
+  onOpenAutoMode?: () => void;
 }) {
   return (
     <AppScreen title="设置" onBack={onBack}>
@@ -159,6 +165,51 @@ export function SettingsScreenV3({
       {/* 高级功能 */}
       <div className="text-[13px] font-medium mb-2 mt-4 txt-accent">高级功能</div>
       <ListGroup>
+        <Row
+          label="角色自动档"
+          hint="角色主动发消息、朋友圈等（点击设置详细选项）"
+          icon="🤖"
+          onClick={onOpenAutoMode}
+          right={
+            <span className="text-[var(--accent)] text-[18px]">→</span>
+          }
+        />
+
+        <Row
+          label="自动刷新"
+          hint={`开启后每${Math.floor(autoRefreshInterval / 60)}分钟自动更新角色动态`}
+          right={
+            <input
+              type="checkbox"
+              checked={autoRefreshEnabled}
+              onChange={(e) => onUpdateSetting('autoRefreshEnabled', e.target.checked)}
+              className="w-5 h-5 accent-[var(--accent)] cursor-pointer"
+            />
+          }
+        />
+
+        {autoRefreshEnabled && (
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[14px]">刷新间隔</span>
+              <span className="text-[12px] txt-faint">{Math.floor(autoRefreshInterval / 60)}分钟</span>
+            </div>
+            <input
+              type="range"
+              min="60"
+              max="1800"
+              step="60"
+              value={autoRefreshInterval}
+              onChange={(e) => onUpdateSetting('autoRefreshInterval', parseInt(e.target.value))}
+              className="w-full h-2 bg-[var(--surface)] rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
+            />
+            <div className="flex justify-between text-[11px] txt-faint mt-1">
+              <span>1分钟</span>
+              <span>30分钟</span>
+            </div>
+          </div>
+        )}
+
         <Row
           label="线下模式"
           hint="记录与角色的线下活动，线上线下记忆互通"

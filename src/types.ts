@@ -107,6 +107,17 @@ export interface Character {
   coupleAvatar?: string; // 情头（与用户配对的头像）
   phoneLockedBy?: ID;   // 被哪个角色锁定了手机（情侣空间功能）
   homeAddress?: string; // 家园地址（用于同居功能）
+  // v3.0 自动档功能
+  autoMode?: boolean;   // 是否开启自动档（角色主动发消息、朋友圈等）
+  autoModeInterval?: number; // 自动行为间隔（分钟），默认30
+  lastAutoActionTime?: number; // 上次自动行为时间
+  autoActions?: {
+    sendMessage: boolean;    // 主动发消息
+    sendMoment: boolean;     // 主动发朋友圈
+    sendImage: boolean;      // 主动发图片
+    useSocial: boolean;      // 主动使用社交功能（微博、X等）
+    useApps: boolean;        // 主动使用其他应用
+  };
 }
 
 /* ---------- Chat ---------- */
@@ -735,6 +746,12 @@ export interface AppSettings {
   floatingBallEnabled?: boolean; // 悬浮球
   innerThoughtOpacity?: number; // 心声透明度 0-1
   autoSaveCharImages?: boolean; // 自动保存角色发送的图片到相册
+
+  // v3.0 自动刷新系统
+  autoRefreshEnabled?: boolean; // 是否开启全局自动刷新
+  autoRefreshInterval?: number; // 自动刷新间隔（秒），默认300（5分钟）
+  lastAutoRefreshTime?: number; // 上次自动刷新时间
+  manualRefreshEnabled?: boolean; // 是否允许手动刷新（始终为true）
 }
 
 export interface InstalledWebApp {
