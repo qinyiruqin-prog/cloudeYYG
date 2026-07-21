@@ -43,6 +43,10 @@ export function Desktop({
   // drag-to-reorder state (pointer based, works on touch + mouse)
   const dragOverId = useRef<string | null>(null);
 
+  // long-press detection
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTarget = useRef<string | null>(null);
+
   useEffect(() => {
     const onEdit = () => setEdit(true);
     window.addEventListener('desktop-edit', onEdit);
@@ -92,9 +96,35 @@ export function Desktop({
   };
 
   /* ---- drag reorder (pointer based) ---- */
+  const startLongPress = (appId: string) => {
+    longPressTarget.current = appId;
+    longPressTimer.current = setTimeout(() => {
+      if (longPressTarget.current === appId) {
+        setEdit(true);
+        // 添加震动反馈（如果设备支持）
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+      }
+    }, 800); // 800ms长按
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressTarget.current = null;
+  };
+
   const onIconPointerDown = (appId: string) => {
-    if (!edit) return;
-    setDragId(appId);
+    if (edit) {
+      // 已经在编辑模式，直接开始拖拽
+      setDragId(appId);
+    } else {
+      // 不在编辑模式，开始长按检测
+      startLongPress(appId);
+    }
   };
   const onIconPointerEnter = (appId: string) => {
     if (!edit || !dragId || dragId === appId) return;
@@ -111,6 +141,7 @@ export function Desktop({
     }
   };
   const onIconPointerUp = () => {
+    cancelLongPress();
     setDragId(null);
     dragOverId.current = null;
   };
@@ -134,6 +165,22 @@ export function Desktop({
       onPointerCancel={onPointerUp}
       onClick={() => { if (edit && !movedRef.current) setEdit(false); }}
     >
+      {/* 编辑模式 - 完成按钮 */}
+      {edit && (
+        <div className="absolute top-2 right-4 z-50">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEdit(false);
+            }}
+            className="tap px-4 py-1.5 rounded-full text-white text-[14px] font-medium"
+            style={{ background: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(10px)' }}
+          >
+            完成
+          </button>
+        </div>
+      )}
+
       {/* pages strip */}
       <div
         className="absolute inset-0 flex transition-transform duration-300 ease-out"
