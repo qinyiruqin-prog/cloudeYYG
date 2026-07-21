@@ -131,7 +131,7 @@ export function Desktop({
           navigator.vibrate(50);
         }
       }
-    }, 5000); // 5000ms长按（5秒）
+    }, 3000); // 3000ms长按（3秒）
   };
 
   const cancelLongPress = () => {
@@ -224,21 +224,9 @@ export function Desktop({
   };
 
   const gridIds = (pages[page] ?? []).filter((id) => !DOCK_IDS.includes(id));
-
-  // 将所有应用都放在第一页，不再有removedIds
-  const allAppIds = APPS.map((a) => a.id).filter((id) => !DOCK_IDS.includes(id));
-
-  // 确保所有应用都在桌面上
-  useEffect(() => {
-    const currentIds = pages.flat();
-    const missingIds = allAppIds.filter((id) => !currentIds.includes(id));
-    if (missingIds.length > 0) {
-      const next = pages.map((p) => [...p]);
-      if (!next[0]) next[0] = [];
-      next[0].push(...missingIds);
-      onChangeLayout({ ...layout, pages: next });
-    }
-  }, []);
+  const removedIds = APPS.map((a) => a.id).filter(
+    (id) => !pages.flat().includes(id) && !DOCK_IDS.includes(id),
+  );
 
   return (
     <div
@@ -292,6 +280,7 @@ export function Desktop({
                   onIconDown={onIconPointerDown}
                   onIconEnter={onIconPointerEnter}
                   onIconUp={onIconPointerUp}
+                  removeApp={removeApp}
                 />
               )}
               {pIdx === 1 && (
@@ -304,6 +293,7 @@ export function Desktop({
                   onIconDown={onIconPointerDown}
                   onIconEnter={onIconPointerEnter}
                   onIconUp={onIconPointerUp}
+                  removeApp={removeApp}
                 />
               )}
               {pIdx === 2 && (
@@ -316,6 +306,7 @@ export function Desktop({
                   onIconDown={onIconPointerDown}
                   onIconEnter={onIconPointerEnter}
                   onIconUp={onIconPointerUp}
+                  removeApp={removeApp}
                 />
               )}
               {pIdx >= 3 && (
@@ -327,6 +318,7 @@ export function Desktop({
                   onIconDown={onIconPointerDown}
                   onIconEnter={onIconPointerEnter}
                   onIconUp={onIconPointerUp}
+                  removeApp={removeApp}
                 />
               )}
             </div>
@@ -376,6 +368,38 @@ export function Desktop({
         </div>
       )}
 
+      {edit && removedIds.length > 0 && (
+        <div className="absolute bottom-[120px] inset-x-4 glass-strong rounded-2xl p-3 z-30 animate-sheet-up">
+          <div className="text-[11px] txt-dim mb-2">拖动添加回桌面</div>
+          <div className="flex gap-2 flex-wrap">
+            {removedIds.map((id) => (
+              <div
+                key={id}
+                onPointerDown={(e) => onIconPointerDown(id, e)}
+                onPointerEnter={() => onIconPointerEnter(id)}
+                onPointerUp={onIconPointerUp}
+                className={cls(
+                  dragId === id && 'opacity-30 scale-95',
+                  'cursor-move',
+                )}
+              >
+                <AppIcon
+                  appId={id}
+                  size="sm"
+                  onOpen={() => {
+                    const next = pages.map((p) => [...p]);
+                    if (!next[page]) next[page] = [];
+                    next[page].push(id);
+                    onChangeLayout({ ...layout, pages: next });
+                  }}
+                  jiggle={edit}
+                  onLongPress={() => {}}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 拖拽中的浮动图标 */}
       {dragId && dragPos && (
@@ -403,7 +427,7 @@ export function Desktop({
 
 /* ---------- Page 1: widgets page (HELLO/clock/vinyl/photo/assistant) ---------- */
 function Page1({
-  music, album, playing, currentName, onTogglePlay, onShortcut, gridIds, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp,
+  music, album, playing, currentName, onTogglePlay, onShortcut, gridIds, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp, removeApp,
 }: {
   music: MusicTrack[];
   album: AlbumImage[];
@@ -418,6 +442,7 @@ function Page1({
   onIconDown: (id: string, e: React.PointerEvent) => void;
   onIconEnter: (id: string) => void;
   onIconUp: () => void;
+  removeApp: (id: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -425,14 +450,14 @@ function Page1({
       <Widget kind="monthStrip" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
       <Widget kind="vinylPhoto" music={music} album={album} playing={playing} currentName={currentName} onTogglePlay={onTogglePlay} onShortcut={onShortcut} />
       <Widget kind="miniMusicCal" music={music} album={[]} playing={playing} currentName={currentName} onTogglePlay={onTogglePlay} onShortcut={onShortcut} />
-      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} />
+      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
     </div>
   );
 }
 
 /* ---------- Page 2: calendar + quote/steps + icon grid ---------- */
 function Page2({
-  gridIds, edit, dragId, onOpenApp, onShortcut, onIconDown, onIconEnter, onIconUp,
+  gridIds, edit, dragId, onOpenApp, onShortcut, onIconDown, onIconEnter, onIconUp, removeApp,
 }: {
   gridIds: string[];
   edit: boolean;
@@ -442,18 +467,19 @@ function Page2({
   onIconDown: (id: string, e: React.PointerEvent) => void;
   onIconEnter: (id: string) => void;
   onIconUp: () => void;
+  removeApp: (id: string) => void;
 }) {
   return (
     <div className="space-y-3">
       <Widget kind="fullCalendar" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
       <Widget kind="quoteSteps" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
-      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} />
+      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
     </div>
   );
 }
 
 function IconGrid({
-  ids, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp,
+  ids, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp, removeApp,
 }: {
   ids: string[];
   edit: boolean;
@@ -462,6 +488,7 @@ function IconGrid({
   onIconDown: (id: string, e: React.PointerEvent) => void;
   onIconEnter: (id: string) => void;
   onIconUp: () => void;
+  removeApp: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-4 gap-x-1 gap-y-4 pt-3">
@@ -499,6 +526,7 @@ function Page3({
   onIconDown,
   onIconEnter,
   onIconUp,
+  removeApp,
 }: {
   settings: AppSettings;
   gridIds: string[];
@@ -508,6 +536,7 @@ function Page3({
   onIconDown: (id: string, e: React.PointerEvent) => void;
   onIconEnter: (id: string) => void;
   onIconUp: () => void;
+  removeApp: (id: string) => void;
 }) {
   const memos = settings.memos || [];
   const periodRecords = settings.periodRecords || [];
@@ -647,7 +676,7 @@ function Page3({
 
       {/* Apps Icon Grid on third page */}
       <div className="pt-2">
-        <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} />
+        <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
       </div>
     </div>
   );
