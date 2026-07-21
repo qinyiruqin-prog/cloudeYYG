@@ -16,14 +16,14 @@ export const defaultSettings = (): AppSettings => ({
   partitions: [],
   desktop: {
     pages: [
-      // 第1页 - 12个图标（填满）
-      ['moments', 'contacts', 'sms', 'mail', 'waimai', 'xiaohongshu', 'novel', 'shop', 'forum', 'calendar', 'worldbook', 'generator'],
-      // 第2页 - 12个图标（填满，sheep替换为me）
-      ['social', 'truth_or_dare', 'period', 'notes_app', 'weather', 'calculator', 'browser', 'diary', 'wallet', 'me', 'anniversary', 'group_chat'],
-      // 第3页 - 14个图标（填满，加上closet和alt_accounts）
-      ['phone_check', 'offline_mode', 'couple_space', 'home_system', 'kitchen', 'turtle_soup', 'games', 'weibo', 'twitter', 'memory', 'weight', 'discover', 'closet', 'alt_accounts'],
-      // 第4页 - 1个图标（只剩sheep）
-      ['sheep']
+      // 第1页 - 11个图标
+      ['moments', 'contacts', 'sms', 'mail', 'waimai', 'xiaohongshu', 'novel', 'shop', 'forum', 'calendar', 'worldbook'],
+      // 第2页 - 12个图标（填满，加入generator）
+      ['generator', 'social', 'truth_or_dare', 'period', 'notes_app', 'weather', 'calculator', 'browser', 'diary', 'wallet', 'me', 'anniversary'],
+      // 第3页 - 14个图标（填满）
+      ['group_chat', 'phone_check', 'offline_mode', 'couple_space', 'home_system', 'kitchen', 'turtle_soup', 'games', 'weibo', 'twitter', 'memory', 'weight', 'discover', 'closet'],
+      // 第4页 - 1个图标
+      ['alt_accounts']
     ],
     widgets: [
       // 第1页小部件
