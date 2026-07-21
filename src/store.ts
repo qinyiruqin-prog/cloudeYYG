@@ -16,16 +16,14 @@ export const defaultSettings = (): AppSettings => ({
   partitions: [],
   desktop: {
     pages: [
-      // 第1页 - 社交通讯（7个图标，移除sheep）
-      ['moments', 'contacts', 'sms', 'mail', 'waimai', 'xiaohongshu', 'novel', 'shop'],
-      // 第2页 - 娱乐社区（8个图标）
-      ['forum', 'calendar', 'worldbook', 'generator', 'social', 'truth_or_dare', 'period', 'notes_app'],
-      // 第3页 - 工具应用（8个图标）
-      ['weather', 'calculator', 'browser', 'diary', 'wallet', 'me', 'novel', 'xiaohongshu'],
-      // 第4页 - v3.0新功能A（8个图标）
-      ['anniversary', 'group_chat', 'phone_check', 'offline_mode', 'couple_space', 'home_system', 'kitchen', 'turtle_soup'],
-      // 第5页 - v3.0新功能B（8个图标）
-      ['weibo', 'twitter', 'memory', 'weight', 'discover', 'alt_accounts', 'settings_v3', 'closet']
+      // 第1页 - 12个图标（填满）
+      ['moments', 'contacts', 'sms', 'mail', 'waimai', 'xiaohongshu', 'novel', 'shop', 'forum', 'calendar', 'worldbook', 'generator'],
+      // 第2页 - 12个图标（填满）
+      ['social', 'truth_or_dare', 'period', 'notes_app', 'weather', 'calculator', 'browser', 'diary', 'wallet', 'sheep', 'anniversary', 'group_chat'],
+      // 第3页 - 12个图标（填满）
+      ['phone_check', 'offline_mode', 'couple_space', 'home_system', 'kitchen', 'turtle_soup', 'games', 'weibo', 'twitter', 'memory', 'weight', 'discover'],
+      // 第4页 - 剩余图标（第5页合并过来）
+      ['alt_accounts', 'closet']
     ],
     widgets: [
       // 第1页小部件

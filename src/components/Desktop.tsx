@@ -31,26 +31,14 @@ export function Desktop({
   onShortcut: (a: ShortcutAction) => void;
 }) {
   const [page, setPage] = useState(0);
-  const [edit, setEdit] = useState(false);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
 
   // swipe state
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const swiping = useRef(false);
-  const movedRef = useRef(false);
-
-  // drag-to-reorder state (pointer based, works on touch + mouse)
-  const dragOverId = useRef<string | null>(null);
-
-  // long-press detection
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const longPressTarget = useRef<string | null>(null);
-  const isDragging = useRef(false);
 
   useEffect(() => {
-    const onEdit = () => setEdit(true);
+    const onEdit = () => {};
     window.addEventListener('desktop-edit', onEdit);
     return () => window.removeEventListener('desktop-edit', onEdit);
   }, []);
@@ -60,7 +48,6 @@ export function Desktop({
 
   /* ---- swipe paging (pointer based to support mouse drag and touch) ---- */
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (edit) return;
     // Capture pointer so we continue receiving events even if the user drags outside the element
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -70,33 +57,15 @@ export function Desktop({
     touchStartX.current = e.clientX;
     touchStartY.current = e.clientY;
     swiping.current = true;
-    movedRef.current = false;
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 如果正在拖拽图标
-    if (edit && isDragging.current && dragId) {
-      dragCurrentPos.current = { x: e.clientX, y: e.clientY };
-      setDragPos({ x: e.clientX, y: e.clientY });
-
-      // 检测边缘，自动切换页面
-      const screenWidth = window.innerWidth;
-      const edgeThreshold = 50;
-
-      if (e.clientX < edgeThreshold && page > 0) {
-        setPage(page - 1);
-      } else if (e.clientX > screenWidth - edgeThreshold && page < maxPage) {
-        setPage(page + 1);
-      }
-      return;
-    }
-
-    // 滑动翻页
-    if (!swiping.current || isDragging.current) return;
+    if (!swiping.current) return;
     const dx = e.clientX - touchStartX.current;
     const dy = e.clientY - touchStartY.current;
+    // 检测是否是滑动手势
     if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      movedRef.current = true;
+      // 有移动
     }
   };
 
@@ -106,7 +75,6 @@ export function Desktop({
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch (err) {}
-    if (edit) return;
     const dx = e.clientX - touchStartX.current;
     const dy = e.clientY - touchStartY.current;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
@@ -115,118 +83,7 @@ export function Desktop({
     }
   };
 
-  /* ---- drag reorder (pointer based) ---- */
-  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
-  const dragCurrentPos = useRef<{ x: number; y: number } | null>(null);
-
-  const startLongPress = (appId: string, e: React.PointerEvent) => {
-    longPressTarget.current = appId;
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
-    longPressTimer.current = setTimeout(() => {
-      if (longPressTarget.current === appId) {
-        setEdit(true);
-        isDragging.current = false;
-        // 添加震动反馈（如果设备支持）
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-      }
-    }, 3000); // 3000ms长按（3秒）
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    longPressTarget.current = null;
-    dragStartPos.current = null;
-  };
-
-  const onIconPointerDown = (appId: string, e: React.PointerEvent) => {
-    if (edit) {
-      // 已经在编辑模式，直接开始拖拽
-      setDragId(appId);
-      isDragging.current = true;
-      dragStartPos.current = { x: e.clientX, y: e.clientY };
-      dragCurrentPos.current = { x: e.clientX, y: e.clientY };
-      setDragPos({ x: e.clientX, y: e.clientY });
-    } else {
-      // 不在编辑模式，开始长按检测
-      startLongPress(appId, e);
-    }
-  };
-
-  const onIconPointerMove = (e: React.PointerEvent) => {
-    if (edit && isDragging.current && dragId) {
-      dragCurrentPos.current = { x: e.clientX, y: e.clientY };
-      setDragPos({ x: e.clientX, y: e.clientY });
-
-      // 检测边缘，自动切换页面
-      const screenWidth = window.innerWidth;
-      const edgeThreshold = 50;
-
-      if (e.clientX < edgeThreshold && page > 0) {
-        setPage(page - 1);
-      } else if (e.clientX > screenWidth - edgeThreshold && page < maxPage) {
-        setPage(page + 1);
-      }
-    }
-  };
-
-  const onIconPointerEnter = (appId: string) => {
-    if (!edit || !dragId || dragId === appId) return;
-    dragOverId.current = appId;
-
-    // 查找拖拽源和目标所在的页面
-    let fromPage = -1;
-    let toPage = -1;
-
-    pages.forEach((p, idx) => {
-      if (p.includes(dragId)) fromPage = idx;
-      if (p.includes(appId)) toPage = idx;
-    });
-
-    if (fromPage >= 0 && toPage >= 0) {
-      const next = pages.map((p) => [...p]);
-
-      // 从原页面移除
-      const fromArr = next[fromPage];
-      const fromIdx = fromArr.indexOf(dragId);
-      if (fromIdx >= 0) {
-        fromArr.splice(fromIdx, 1);
-      }
-
-      // 插入到目标页面
-      const toArr = next[toPage];
-      const toIdx = toArr.indexOf(appId);
-      if (toIdx >= 0) {
-        toArr.splice(toIdx, 0, dragId);
-      }
-
-      onChangeLayout({ ...layout, pages: next });
-    }
-  };
-
-  const onIconPointerUp = () => {
-    cancelLongPress();
-    setDragId(null);
-    setDragPos(null);
-    dragOverId.current = null;
-    isDragging.current = false;
-    dragStartPos.current = null;
-    dragCurrentPos.current = null;
-  };
-
-  const removeApp = (appId: string) => {
-    const next = pages.map((p) => p.filter((id) => id !== appId));
-    onChangeLayout({ ...layout, pages: next });
-  };
-
   const gridIds = (pages[page] ?? []).filter((id) => !DOCK_IDS.includes(id));
-  const removedIds = APPS.map((a) => a.id).filter(
-    (id) => !pages.flat().includes(id) && !DOCK_IDS.includes(id),
-  );
 
   return (
     <div
@@ -235,24 +92,7 @@ export function Desktop({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onClick={() => { if (edit && !movedRef.current) setEdit(false); }}
     >
-      {/* 编辑模式 - 完成按钮 */}
-      {edit && (
-        <div className="absolute top-2 right-4 z-50">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEdit(false);
-            }}
-            className="tap px-4 py-1.5 rounded-full text-white text-[14px] font-medium"
-            style={{ background: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(10px)' }}
-          >
-            完成
-          </button>
-        </div>
-      )}
-
       {/* pages strip */}
       <div
         className="absolute inset-0 flex transition-transform duration-300 ease-out"
@@ -274,51 +114,27 @@ export function Desktop({
                   onTogglePlay={onTogglePlay}
                   onShortcut={onShortcut}
                   gridIds={gridIds}
-                  edit={edit}
-                  dragId={dragId}
                   onOpenApp={onOpenApp}
-                  onIconDown={onIconPointerDown}
-                  onIconEnter={onIconPointerEnter}
-                  onIconUp={onIconPointerUp}
-                  removeApp={removeApp}
                 />
               )}
               {pIdx === 1 && (
                 <Page2
                   gridIds={gridIds}
-                  edit={edit}
-                  dragId={dragId}
                   onOpenApp={onOpenApp}
                   onShortcut={onShortcut}
-                  onIconDown={onIconPointerDown}
-                  onIconEnter={onIconPointerEnter}
-                  onIconUp={onIconPointerUp}
-                  removeApp={removeApp}
                 />
               )}
               {pIdx === 2 && (
                 <Page3
                   settings={settings}
                   gridIds={gridIds}
-                  edit={edit}
-                  dragId={dragId}
                   onOpenApp={onOpenApp}
-                  onIconDown={onIconPointerDown}
-                  onIconEnter={onIconPointerEnter}
-                  onIconUp={onIconPointerUp}
-                  removeApp={removeApp}
                 />
               )}
               {pIdx >= 3 && (
                 <IconGrid
                   ids={(pages[pIdx] ?? []).filter((id) => !DOCK_IDS.includes(id))}
-                  edit={edit}
-                  dragId={dragId}
                   onOpenApp={onOpenApp}
-                  onIconDown={onIconPointerDown}
-                  onIconEnter={onIconPointerEnter}
-                  onIconUp={onIconPointerUp}
-                  removeApp={removeApp}
                 />
               )}
             </div>
@@ -355,79 +171,17 @@ export function Desktop({
               size="sm"
               showLabel={false}
               onOpen={() => onOpenApp(id)}
-              jiggle={edit}
-              onLongPress={() => setEdit(true)}
             />
           ))}
         </div>
       </div>
-
-      {edit && (
-        <div className="absolute top-12 inset-x-0 text-center text-[12px] txt-dim animate-fade-in pointer-events-none z-20">
-          拖动图标调整位置 · 点空白退出
-        </div>
-      )}
-
-      {edit && removedIds.length > 0 && (
-        <div className="absolute bottom-[120px] inset-x-4 glass-strong rounded-2xl p-3 z-30 animate-sheet-up">
-          <div className="text-[11px] txt-dim mb-2">拖动添加回桌面</div>
-          <div className="flex gap-2 flex-wrap">
-            {removedIds.map((id) => (
-              <div
-                key={id}
-                onPointerDown={(e) => onIconPointerDown(id, e)}
-                onPointerEnter={() => onIconPointerEnter(id)}
-                onPointerUp={onIconPointerUp}
-                className={cls(
-                  dragId === id && 'opacity-30 scale-95',
-                  'cursor-move',
-                )}
-              >
-                <AppIcon
-                  appId={id}
-                  size="sm"
-                  onOpen={() => {
-                    const next = pages.map((p) => [...p]);
-                    if (!next[page]) next[page] = [];
-                    next[page].push(id);
-                    onChangeLayout({ ...layout, pages: next });
-                  }}
-                  jiggle={edit}
-                  onLongPress={() => {}}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 拖拽中的浮动图标 */}
-      {dragId && dragPos && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: dragPos.x,
-            top: dragPos.y,
-            transform: 'translate(-50%, -50%) scale(1.2)',
-            opacity: 0.9,
-          }}
-        >
-          <AppIcon
-            appId={dragId}
-            size="md"
-            onOpen={() => {}}
-            jiggle={false}
-            showLabel={false}
-          />
-        </div>
-      )}
     </div>
   );
 }
 
 /* ---------- Page 1: widgets page (HELLO/clock/vinyl/photo/assistant) ---------- */
 function Page1({
-  music, album, playing, currentName, onTogglePlay, onShortcut, gridIds, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp, removeApp,
+  music, album, playing, currentName, onTogglePlay, onShortcut, gridIds, onOpenApp,
 }: {
   music: MusicTrack[];
   album: AlbumImage[];
@@ -436,13 +190,7 @@ function Page1({
   onTogglePlay: () => void;
   onShortcut: (a: ShortcutAction) => void;
   gridIds: string[];
-  edit: boolean;
-  dragId: string | null;
   onOpenApp: (id: string) => void;
-  onIconDown: (id: string, e: React.PointerEvent) => void;
-  onIconEnter: (id: string) => void;
-  onIconUp: () => void;
-  removeApp: (id: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -450,65 +198,44 @@ function Page1({
       <Widget kind="monthStrip" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
       <Widget kind="vinylPhoto" music={music} album={album} playing={playing} currentName={currentName} onTogglePlay={onTogglePlay} onShortcut={onShortcut} />
       <Widget kind="miniMusicCal" music={music} album={[]} playing={playing} currentName={currentName} onTogglePlay={onTogglePlay} onShortcut={onShortcut} />
-      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
+      <IconGrid ids={gridIds} onOpenApp={onOpenApp} />
     </div>
   );
 }
 
 /* ---------- Page 2: calendar + quote/steps + icon grid ---------- */
 function Page2({
-  gridIds, edit, dragId, onOpenApp, onShortcut, onIconDown, onIconEnter, onIconUp, removeApp,
+  gridIds, onOpenApp, onShortcut,
 }: {
   gridIds: string[];
-  edit: boolean;
-  dragId: string | null;
   onOpenApp: (id: string) => void;
   onShortcut: (a: ShortcutAction) => void;
-  onIconDown: (id: string, e: React.PointerEvent) => void;
-  onIconEnter: (id: string) => void;
-  onIconUp: () => void;
-  removeApp: (id: string) => void;
 }) {
   return (
     <div className="space-y-3">
       <Widget kind="fullCalendar" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
       <Widget kind="quoteSteps" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
-      <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
+      <IconGrid ids={gridIds} onOpenApp={onOpenApp} />
     </div>
   );
 }
 
 function IconGrid({
-  ids, edit, dragId, onOpenApp, onIconDown, onIconEnter, onIconUp, removeApp,
+  ids, onOpenApp,
 }: {
   ids: string[];
-  edit: boolean;
-  dragId: string | null;
   onOpenApp: (id: string) => void;
-  onIconDown: (id: string, e: React.PointerEvent) => void;
-  onIconEnter: (id: string) => void;
-  onIconUp: () => void;
-  removeApp: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-4 gap-x-1 gap-y-4 pt-3">
       {ids.map((appId) => (
         <div
           key={appId}
-          onPointerDown={(e) => onIconDown(appId, e)}
-          onPointerEnter={() => onIconEnter(appId)}
-          onPointerUp={onIconUp}
-          className={cls(
-            'flex justify-center',
-            dragId === appId && 'opacity-30 scale-95',
-            edit && 'cursor-move',
-          )}
+          className="flex justify-center"
         >
           <AppIcon
             appId={appId}
             onOpen={() => onOpenApp(appId)}
-            jiggle={edit}
-            onLongPress={() => { /* edit triggered by parent */ }}
           />
         </div>
       ))}
@@ -520,23 +247,11 @@ function IconGrid({
 function Page3({
   settings,
   gridIds,
-  edit,
-  dragId,
   onOpenApp,
-  onIconDown,
-  onIconEnter,
-  onIconUp,
-  removeApp,
 }: {
   settings: AppSettings;
   gridIds: string[];
-  edit: boolean;
-  dragId: string | null;
   onOpenApp: (id: string) => void;
-  onIconDown: (id: string, e: React.PointerEvent) => void;
-  onIconEnter: (id: string) => void;
-  onIconUp: () => void;
-  removeApp: (id: string) => void;
 }) {
   const memos = settings.memos || [];
   const periodRecords = settings.periodRecords || [];
@@ -676,7 +391,7 @@ function Page3({
 
       {/* Apps Icon Grid on third page */}
       <div className="pt-2">
-        <IconGrid ids={gridIds} edit={edit} dragId={dragId} onOpenApp={onOpenApp} onIconDown={onIconDown} onIconEnter={onIconEnter} onIconUp={onIconUp} removeApp={removeApp} />
+        <IconGrid ids={gridIds} onOpenApp={onOpenApp} />
       </div>
     </div>
   );
