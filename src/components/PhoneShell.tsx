@@ -324,8 +324,9 @@ export function PhoneShell({
   };
 
   const openApp = (id: string) => {
+    // sheep快捷球打开羊羊助手
     if (id === SHORTCUT_BALL_ID) {
-      setBallOpen(true);
+      setOpen('assistant');
       return;
     }
     setOpen(id);
@@ -405,9 +406,9 @@ export function PhoneShell({
           onBack={goHome}
         />
       );
-    // sheep路由：打开聊天列表
+    // sheep路由：打开羊羊助手
     if (open === 'sheep') {
-      setOpen('chat');
+      setOpen('assistant');
       return null;
     }
     if (open === 'chat')
