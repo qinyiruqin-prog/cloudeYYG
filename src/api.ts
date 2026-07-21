@@ -198,16 +198,55 @@ function audioDuration(dataUrl: string): Promise<number> {
 /* Fetch available model list from an OpenAI-compatible /models endpoint. */
 export async function fetchModels(baseUrl: string, apiKey: string): Promise<string[]> {
   if (!baseUrl) throw new Error('请先填写接口地址');
+  if (!apiKey) throw new Error('请先填写API Key');
+
   const base = baseUrl.replace(/\/+$/, '');
-  const res = await fetch(`${base}/models`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  const list = data?.data ?? data?.models ?? [];
-  const ids = list.map((m: { id?: string; name?: string }) => m.id ?? m.name).filter(Boolean);
-  if (!ids.length) throw new Error('未返回模型列表');
-  return ids as string[];
+
+  try {
+    const res = await fetch(`${base}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!res.ok) {
+      let errorMsg = `HTTP ${res.status}`;
+      try {
+        const errorData = await res.json();
+        if (errorData.error?.message) {
+          errorMsg = errorData.error.message;
+        } else if (errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch {
+        // 无法解析JSON错误
+      }
+
+      if (res.status === 401) {
+        throw new Error('API Key无效或过期');
+      } else if (res.status === 403) {
+        throw new Error('没有权限访问模型列表，请检查API Key权限');
+      } else if (res.status === 404) {
+        throw new Error('API不支持/models接口，请手动输入模型名称');
+      } else if (res.status === 429) {
+        throw new Error('请求过多，请稍后再试');
+      } else if (res.status >= 500) {
+        throw new Error('API服务器错误');
+      }
+
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+    const list = data?.data ?? data?.models ?? [];
+    const ids = list.map((m: { id?: string; name?: string }) => m.id ?? m.name).filter(Boolean);
+    if (!ids.length) throw new Error('API未返回模型列表，请手动输入模型名称');
+    return ids as string[];
+  } catch (e) {
+    const error = e as Error;
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('网络错误：无法连接到API服务器');
+    }
+    throw error;
+  }
 }
 
 /* ---------- Persona / Worldbook generator ---------- */
