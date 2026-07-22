@@ -12,24 +12,6 @@ export { AltAccountsScreen } from './AltAccountsScreen';
 export { WeiboScreen } from './WeiboScreen';
 export { TwitterScreen } from './TwitterScreen';
 export { MemoryScreen } from './MemoryScreen';
+export { WeightManageScreen } from './WeightManageScreen';
 
 // 所有核心v3.0功能已从单独文件导出
-
-export function WeightManageScreen({ onBack }: { onBack: () => void }) {
-  return (
-    <ComingSoonV3
-      title="体重管理"
-      icon="⚖️"
-      description="记录体重、设定目标、AI角色陪你一起健身"
-      features={[
-        '体重记录和BMI计算',
-        '设定目标体重',
-        '进度可视化',
-        '对比照片',
-        '角色监督和鼓励',
-      ]}
-      onBack={onBack}
-    />
-  );
-}
-

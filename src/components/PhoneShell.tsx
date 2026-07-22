@@ -697,7 +697,16 @@ export function PhoneShell({
           onBack={goHome}
         />
       );
-    if (open === 'weight') return <WeightManageScreen onBack={goHome} />;
+    if (open === 'weight')
+      return (
+        <WeightManageScreen
+          records={settings.weightRecords || []}
+          goals={settings.weightGoals || []}
+          onChange={(weightRecords) => updateSettings({ weightRecords })}
+          onChangeGoals={(weightGoals) => updateSettings({ weightGoals })}
+          onBack={goHome}
+        />
+      );
     if (open === 'discover') return <DiscoverScreen onBack={goHome} />;
     if (open === 'alt_accounts')
       return (
