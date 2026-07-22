@@ -1527,6 +1527,34 @@ ${cameraEnabled ? '用户的摄像头已开启，你可以看到用户的样子�
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // 格式化时间戳
+  const formatTimestamp = (ts: number) => {
+    const date = new Date(ts);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+    if (isToday) {
+      return timeStr;
+    } else if (isYesterday) {
+      return `昨天 ${timeStr}`;
+    } else {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}月${day}日 ${timeStr}`;
+    }
+  };
+
+  // 检查是否需要显示时间戳（超过5分钟）
+  const shouldShowTimestamp = (currentTs: number, prevTs?: number) => {
+    if (!prevTs) return true;
+    return (currentTs - prevTs) > 5 * 60 * 1000; // 5分钟
+  };
+
   return (
     <AppScreen
       title={displayTitle}
@@ -1552,133 +1580,154 @@ ${cameraEnabled ? '用户的摄像头已开启，你可以看到用户的样子�
       )}
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3">
-          {thread.messages.map((m) => (
-            <div key={m.id} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {/* 角色头像 - 左侧 */}
-              {m.role === 'assistant' && (
-                <div
-                  onPointerDown={() => {
-                    const now = Date.now();
-                    const key = 'assistant';
-                    if (now - (lastAvatarTapTime.current[key] || 0) < 300) {
-                      // 双击角色头像 - 拍一拍角色
-                      if (activeInteractEnabled !== false) {
-                        sendActive('用户刚刚拍了拍你，请根据你的人设，以你独特的风格拍回去或说点什么。也可以选择发张生活照或者发段语音。', `我 👏 拍了拍 ${thread.charAltName || char.name}`);
-                      }
-                      lastAvatarTapTime.current[key] = 0;
-                    } else {
-                      lastAvatarTapTime.current[key] = now;
-                    }
-                  }}
-                  className="flex-shrink-0 cursor-pointer"
-                >
-                  {char.avatar ? (
-                    <img src={char.avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold">
-                      {char.name[0]}
-                    </div>
-                  )}
-                </div>
-              )}
+          {thread.messages.map((m, index) => {
+            const prevMsg = index > 0 ? thread.messages[index - 1] : null;
+            const showTimestamp = shouldShowTimestamp(m.ts, prevMsg?.ts);
 
-              {/* 消息内容 */}
-              <div
-                onClick={() => {
-                  if (multiSelectMode) {
-                    setSelectedMessages(prev => {
-                      const next = new Set(prev);
-                      if (next.has(m.id)) {
-                        next.delete(m.id);
-                      } else {
-                        next.add(m.id);
-                      }
-                      return next;
-                    });
-                  } else if (m.callRecord) {
-                    // 点击通话记录卡片查看详情
-                    setViewingCallRecord(m.callRecord);
-                  }
-                }}
-                onPointerDown={() => !multiSelectMode && !m.callRecord && startLongPress(m)}
-                onPointerUp={cancelLongPress}
-                onPointerLeave={cancelLongPress}
-                className={`max-w-[78%] space-y-2 ${m.role === 'user' ? 'items-end' : 'items-start'} flex flex-col ${multiSelectMode || m.callRecord ? 'cursor-pointer' : ''} ${selectedMessages.has(m.id) ? 'opacity-50 ring-2 ring-[var(--accent)] rounded-2xl' : ''}`}
-              >
-                {/* 通话记录卡片 */}
-                {m.callRecord ? (
-                  <div className="glass rounded-xl p-3 border border-green-500/30 bg-green-500/5 min-w-[200px]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[20px]">{m.callRecord.type === 'video' ? '📹' : '📞'}</span>
-                      <div className="flex-1">
-                        <div className="text-[13px] font-medium text-green-400">
-                          {m.callRecord.type === 'video' ? '视频通话' : '语音通话'}
-                        </div>
-                        <div className="text-[11px] txt-faint">
-                          通话时长 {formatDuration(m.callRecord.duration)}
-                        </div>
-                      </div>
-                    </div>
-                    {m.callRecord.type === 'video' && m.callRecord.cameraEnabled && (
-                      <div className="text-[10px] text-green-400/70 mt-1">📷 摄像头已开启</div>
-                    )}
-                    <div className="text-[10px] txt-faint mt-2">点击查看通话详情</div>
+            return (
+              <div key={m.id}>
+                {/* 时间戳 */}
+                {showTimestamp && (
+                  <div className="text-center text-[11px] txt-faint my-2">
+                    {formatTimestamp(m.ts)}
+                  </div>
+                )}
+
+                {/* 拍一拍消息 - 居中小字样式 */}
+                {m.content.includes('拍了拍') && !m.callRecord && !m.media ? (
+                  <div className="text-center text-[12px] txt-faint my-1">
+                    {m.content}
                   </div>
                 ) : (
-                  <>
-                    {m.content && (
-                      <div className="flex flex-col gap-1 items-start w-full">
-                        <div
-                          className={`px-3.5 py-2.5 rounded-2xl text-[14px] leading-relaxed ${m.role === 'user' ? 'rounded-br-md text-white font-medium' : 'glass rounded-bl-md'}`}
-                          style={m.role === 'user' ? { background: 'var(--accent)', color: 'var(--bg)' } : undefined}
-                        >
-                          {m.content}
-                        </div>
-                        {/* Inline translation display */}
-                        {translations[m.id] && showTranslation[m.id] && (
-                          <div className="px-3 py-1.5 rounded-xl text-[12px] bg-indigo-500/10 border border-indigo-500/15 text-indigo-200 leading-relaxed max-w-full animate-fade-in mt-1 select-text">
-                            <div className="text-[10px] text-indigo-400 font-bold mb-0.5 flex items-center gap-1">
-                              <span>🌐 翻译 / Translation</span>
-                            </div>
-                            {translations[m.id]}
+                  <div className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {/* 角色头像 - 左侧 */}
+                    {m.role === 'assistant' && !m.content.includes('拍了拍') && (
+                      <div
+                        onPointerDown={() => {
+                          const now = Date.now();
+                          const key = 'assistant';
+                          if (now - (lastAvatarTapTime.current[key] || 0) < 300) {
+                            // 双击角色头像 - 拍一拍角色
+                            if (activeInteractEnabled !== false) {
+                              sendActive('用户刚刚拍了拍你，请根据你的人设，以你独特的风格拍回去或说点什么。也可以选择发张生活照或者发段语音。', `我 👏 拍了拍 ${thread.charAltName || char.name}`);
+                            }
+                            lastAvatarTapTime.current[key] = 0;
+                          } else {
+                            lastAvatarTapTime.current[key] = now;
+                          }
+                        }}
+                        className="flex-shrink-0 cursor-pointer"
+                      >
+                        {char.avatar ? (
+                          <img src={char.avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold">
+                            {char.name[0]}
                           </div>
                         )}
                       </div>
                     )}
-                    {m.media?.map((md, i) => <MediaBubble key={i} media={md} />)}
-                  </>
+
+                    {/* 消息内容 */}
+                    <div
+                      onClick={() => {
+                        if (multiSelectMode) {
+                          setSelectedMessages(prev => {
+                            const next = new Set(prev);
+                            if (next.has(m.id)) {
+                              next.delete(m.id);
+                            } else {
+                              next.add(m.id);
+                            }
+                            return next;
+                          });
+                        } else if (m.callRecord) {
+                          // 点击通话记录卡片查看详情
+                          setViewingCallRecord(m.callRecord);
+                        }
+                      }}
+                      onPointerDown={() => !multiSelectMode && !m.callRecord && startLongPress(m)}
+                      onPointerUp={cancelLongPress}
+                      onPointerLeave={cancelLongPress}
+                      className={`max-w-[78%] space-y-2 ${m.role === 'user' ? 'items-end' : 'items-start'} flex flex-col ${multiSelectMode || m.callRecord ? 'cursor-pointer' : ''} ${selectedMessages.has(m.id) ? 'opacity-50 ring-2 ring-[var(--accent)] rounded-2xl' : ''}`}
+                    >
+                      {/* 通话记录卡片 */}
+                      {m.callRecord ? (
+                        <div className="glass rounded-xl p-3 border border-green-500/30 bg-green-500/5 min-w-[200px]">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[20px]">{m.callRecord.type === 'video' ? '📹' : '📞'}</span>
+                            <div className="flex-1">
+                              <div className="text-[13px] font-medium text-green-400">
+                                {m.callRecord.type === 'video' ? '视频通话' : '语音通话'}
+                              </div>
+                              <div className="text-[11px] txt-faint">
+                                通话时长 {formatDuration(m.callRecord.duration)}
+                              </div>
+                            </div>
+                          </div>
+                          {m.callRecord.type === 'video' && m.callRecord.cameraEnabled && (
+                            <div className="text-[10px] text-green-400/70 mt-1">📷 摄像头已开启</div>
+                          )}
+                          <div className="text-[10px] txt-faint mt-2">点击查看通话详情</div>
+                        </div>
+                      ) : (
+                        <>
+                          {m.content && (
+                            <div className="flex flex-col gap-1 items-start w-full">
+                              <div
+                                className={`px-3.5 py-2.5 rounded-2xl text-[14px] leading-relaxed ${m.role === 'user' ? 'rounded-br-md text-white font-medium' : 'glass rounded-bl-md'}`}
+                                style={m.role === 'user' ? { background: 'var(--accent)', color: 'var(--bg)' } : undefined}
+                              >
+                                {m.content}
+                              </div>
+                              {/* Inline translation display */}
+                              {translations[m.id] && showTranslation[m.id] && (
+                                <div className="px-3 py-1.5 rounded-xl text-[12px] bg-indigo-500/10 border border-indigo-500/15 text-indigo-200 leading-relaxed max-w-full animate-fade-in mt-1 select-text">
+                                  <div className="text-[10px] text-indigo-400 font-bold mb-0.5 flex items-center gap-1">
+                                    <span>🌐 翻译 / Translation</span>
+                                  </div>
+                                  {translations[m.id]}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {m.media?.map((md, i) => <MediaBubble key={i} media={md} />)}
+                        </>
+                      )}
+                    </div>
+
+                    {/* 用户头像 - 右侧 */}
+                    {m.role === 'user' && !m.content.includes('拍了拍') && (
+                      <div
+                        onPointerDown={() => {
+                          const now = Date.now();
+                          const key = 'user';
+                          if (now - (lastAvatarTapTime.current[key] || 0) < 300) {
+                            // 双击用户头像 - 角色拍一拍用户
+                            if (activeInteractEnabled !== false) {
+                              sendActive(`${thread.charAltName || char.name}突然拍了拍你，请根据你的人设，以你独特的风格回应这个拍一拍，可以说点俏皮话或者发表情。`);
+                            }
+                            lastAvatarTapTime.current[key] = 0;
+                          } else {
+                            lastAvatarTapTime.current[key] = now;
+                          }
+                        }}
+                        className="flex-shrink-0 cursor-pointer"
+                      >
+                        {currentUser?.avatar ? (
+                          <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-bold">
+                            {currentUser?.nickname?.[0] || '我'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {/* 用户头像 - 右侧 */}
-              {m.role === 'user' && (
-                <div
-                  onPointerDown={() => {
-                    const now = Date.now();
-                    const key = 'user';
-                    if (now - (lastAvatarTapTime.current[key] || 0) < 300) {
-                      // 双击用户头像 - 角色拍一拍用户
-                      if (activeInteractEnabled !== false) {
-                        sendActive(`${thread.charAltName || char.name}突然拍了拍你，请根据你的人设，以你独特的风格回应这个拍一拍，可以说点俏皮话或者发表情。`);
-                      }
-                      lastAvatarTapTime.current[key] = 0;
-                    } else {
-                      lastAvatarTapTime.current[key] = now;
-                    }
-                  }}
-                  className="flex-shrink-0 cursor-pointer"
-                >
-                  {currentUser?.avatar ? (
-                    <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-bold">
-                      {currentUser?.nickname?.[0] || '我'}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
           {loading && (
             <div className="flex justify-start">
               <div className="glass rounded-2xl rounded-bl-md px-3.5 py-3 flex items-center gap-1">
