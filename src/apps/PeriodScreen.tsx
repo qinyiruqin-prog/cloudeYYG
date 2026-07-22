@@ -152,11 +152,11 @@ export function PeriodScreen({
       {/* Main Container */}
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
         {/* Sync Info Banner */}
-        <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex gap-3 text-left">
-          <Info size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+        <div className="p-3.5 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex gap-3 text-left">
+          <Info size={16} className="text-pink-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <h4 className="text-[12px] font-bold text-indigo-300">AI 角色已自动读取此数据</h4>
-            <p className="text-[10.5px] text-neutral-400 leading-relaxed">
+            <h4 className="text-[12px] font-bold text-pink-300">AI 角色已自动读取此数据</h4>
+            <p className="text-[10.5px] text-pink-300/70 leading-relaxed">
               当你记录经期后，AI 角色在聊天、主动联系时会自然察觉你的生理周期（特别在生理期与排卵期），并主动给予你温暖贴心的关怀与提醒。
             </p>
           </div>
