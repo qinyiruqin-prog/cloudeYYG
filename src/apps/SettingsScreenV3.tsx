@@ -11,6 +11,8 @@ export function SettingsScreenV3({
   autoRefreshEnabled = false,
   autoRefreshInterval = 300,
   autoTranslateEnabled = false,
+  useRealTime = true,
+  customTime = '',
   onUpdateSetting,
   onBack,
   onOpenIdentities,
@@ -29,6 +31,8 @@ export function SettingsScreenV3({
   autoRefreshEnabled?: boolean;
   autoRefreshInterval?: number;
   autoTranslateEnabled?: boolean;
+  useRealTime?: boolean;
+  customTime?: string;
   onUpdateSetting: (key: string, value: any) => void;
   onBack: () => void;
   onOpenIdentities?: () => void;
@@ -40,8 +44,36 @@ export function SettingsScreenV3({
 }) {
   return (
     <AppScreen title="设置" onBack={onBack}>
+      {/* 补充：时间感知设置 */}
+      <div className="text-[13px] font-medium mb-2 mt-4 txt-accent">时间感知设置</div>
+      <ListGroup>
+        <Row
+          label="时间感知"
+          hint="开启后角色将能感知当前日期与时间"
+          right={
+            <input
+              type="checkbox"
+              checked={useRealTime}
+              onChange={(e) => onUpdateSetting('useRealTime', e.target.checked)}
+              className="w-5 h-5 accent-[var(--accent)] cursor-pointer"
+            />
+          }
+        />
+        {!useRealTime && (
+          <div className="px-4 py-3">
+            <label className="text-[12px] txt-dim block mb-2">自定义时间 (ISO格式)</label>
+            <input
+              type="datetime-local"
+              value={customTime}
+              onChange={(e) => onUpdateSetting('customTime', e.target.value)}
+              className="w-full glass rounded-xl px-3 h-10 text-[13px] outline-none bg-transparent"
+            />
+          </div>
+        )}
+      </ListGroup>
+
       {/* 用户信息（整合"我的"功能） */}
-      <div className="text-[13px] font-medium mb-2 txt-accent">我的账号</div>
+      <div className="text-[13px] font-medium mb-2 mt-4 txt-accent">我的账号</div>
       <ListGroup>
         <Row
           label="身份管理"
