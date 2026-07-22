@@ -31,6 +31,7 @@ import { GeneratorScreen } from '../apps/GeneratorScreen';
 import { SocialScreen } from '../apps/SocialScreen';
 import { TruthOrDareScreen } from '../apps/TruthOrDareScreen';
 import { PeriodScreen, getPeriodPrompt } from '../apps/PeriodScreen';
+import { TimePerceptionScreen } from '../apps/TimePerceptionScreen';
 // v3.0 新增应用
 import { IdentityScreenV3 } from '../apps/IdentityScreenV3';
 import { SettingsScreenV3 } from '../apps/SettingsScreenV3';
@@ -688,6 +689,15 @@ export function PhoneShell({
           useRealTime={settings.useRealTime !== false}
           customTime={settings.customTime || ''}
           onUpdateSetting={(key, value) => updateSettings({ [key]: value })}
+          onBack={goHome}
+        />
+      );
+
+    if (open === 'time_perception')
+      return (
+        <TimePerceptionScreen
+          settings={settings}
+          updateSettings={updateSettings}
           onBack={goHome}
         />
       );

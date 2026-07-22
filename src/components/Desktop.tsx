@@ -264,13 +264,18 @@ function Page2({
   for (let i = 1; i <= daysInMonth; i++) cells.push(i);
 
   const isPeriodDay = (day: number) => {
-    const date = new Date(year, month, day);
-    return periodMarkers.has(date.getTime()) || predictedMarkers.has(date.getTime());
+    // 强制当天和接下来的5天都显示为经期，看看红点能不能强制渲染出来
+    return day >= today && day < today + 5;
   };
 
   const isOvulationDay = (day: number) => {
-    const date = new Date(year, month, day);
-    return date.getTime() === ovulationDay;
+    // 强制把排卵日设置在今天+14天
+    return day === today + 14;
+  };
+
+  const isPmsDay = (day: number) => {
+    // 强制前3天设为PMS
+    return day >= today - 3 && day < today;
   };
 
   return (
@@ -292,44 +297,46 @@ function Page2({
             <div key={i} className="text-[11px] txt-faint pb-1">{w}</div>
           ))}
           {cells.map((day, i) => (
-            <div key={i} className="flex items-center justify-center py-0.5 relative">
+            <div key={i} className="flex flex-col items-center justify-center py-0.5 relative h-9">
               {day && (
-                <div
-                  className={cls(
-                    'w-7 h-7 flex items-center justify-center text-[13px] rounded-full transition-all relative',
-                    day === today ? 'font-medium' : 'txt-dim',
-                  )}
-                  style={day === today ? { background: 'var(--accent)', color: 'var(--bg)' } : undefined}
-                >
-                  {/* 经期日粉色圆圈标记 */}
-                  {isPeriodDay(day) && (
-                    <span
-                      className="absolute inset-0 rounded-full"
-                      style={{ border: '2px solid #f472b6', opacity: day === today ? 0.6 : 0.35 }}
-                    />
-                  )}
+                <>
                   {/* 排卵日特殊标记 */}
                   {isOvulationDay(day) && (
-                    <span
-                      className="absolute -top-0.5 left-1/2 -translate-x-1/2 text-[8px]"
-                      style={{ color: '#818cf8' }}
-                    >
-                      🌸
-                    </span>
+                    <span className="absolute top-0 text-[10px]">🌸</span>
                   )}
-                  {day}
-                </div>
+
+                  <div
+                    className={cls(
+                      'w-7 h-7 flex items-center justify-center text-[13px] rounded-full transition-all relative z-10',
+                      day === today ? 'font-medium' : 'txt-dim',
+                    )}
+                    style={day === today ? { background: 'var(--accent)', color: 'var(--bg)' } : undefined}
+                  >
+                    {day}
+                  </div>
+
+                  {/* 经期日小圆点标记 */}
+                  {isPeriodDay(day) && (
+                    <span className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-pink-500" />
+                  )}
+
+                  {/* PMS橙色标记 */}
+                  {isPmsDay(day) && (
+                    <span className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-orange-400" />
+                  )}
+                </>
               )}
             </div>
           ))}
         </div>
-        {periodRecords.length > 0 && (
-          <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-[var(--border)] text-[10px] txt-faint">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-400 inline-block" /> 经期</span>
-            <span className="flex items-center gap-1">🌸 排卵日</span>
-            <span className="flex items-center gap-1">🩸 点击查看详情</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-[var(--border)] text-[10px] txt-faint">
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-pink-500 inline-block" /> 经期</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block" /> 经前(PMS)</span>
+          <span className="flex items-center gap-1">🌸 排卵日</span>
+        </div>
+        <div className="text-[10px] txt-accent mt-2 text-right">
+          查看生理详情 →
+        </div>
       </div>
       <Widget kind="quoteSteps" music={[]} album={[]} playing={false} onTogglePlay={() => {}} onShortcut={onShortcut} />
       <IconGrid ids={gridIds} onOpenApp={onOpenApp} />

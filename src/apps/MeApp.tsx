@@ -157,6 +157,30 @@ export function MeApp({
         <Row label={<Menu icon={<Layers size={17} />} text="API 预设" />} hint={settings.presets.find((p) => p.id === settings.activePresetId)?.name ?? '手动配置'} onClick={() => setSub('preset')} right={<ChevronRight size={18} className="txt-faint" />} />
         <Row label={<Menu icon={<Palette size={17} />} text="主题" />} hint={themeName} onClick={() => setSub('theme')} right={<ChevronRight size={18} className="txt-faint" />} />
         <Row
+          label={<Menu icon={<Settings size={17} />} text="时间感知" />}
+          hint={settings.useRealTime !== false ? '开启' : '关闭（自定义时间）'}
+          onClick={() => updateSettings({ useRealTime: settings.useRealTime === false ? true : false })}
+          right={
+            <span
+              className={`text-[12px] px-2 py-0.5 rounded-full ${settings.useRealTime !== false ? 'txt-accent' : 'txt-faint'}`}
+              style={{ background: settings.useRealTime !== false ? 'var(--icon-bg-active)' : 'var(--icon-bg)' }}
+            >
+              {settings.useRealTime !== false ? 'ON' : 'OFF'}
+            </span>
+          }
+        />
+        {settings.useRealTime === false && (
+          <div className="px-4 py-3 border-t border-[var(--border)]">
+            <label className="text-[12px] txt-dim block mb-2">自定义时间 (ISO格式)</label>
+            <input
+              type="datetime-local"
+              value={settings.customTime || ''}
+              onChange={(e) => updateSettings({ customTime: e.target.value })}
+              className="w-full glass rounded-xl px-3 h-10 text-[13px] outline-none bg-transparent"
+            />
+          </div>
+        )}
+        <Row
           label={<Menu icon={<Palette size={17} />} text="全局字体大小" />}
           hint={settings.fontSize === 'xl' ? '特大' : settings.fontSize === 'lg' ? '中大' : '标准'}
           onClick={() => {
