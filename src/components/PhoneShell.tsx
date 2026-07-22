@@ -335,7 +335,7 @@ export function PhoneShell({
 
   const renderOpen = () => {
     if (!open) return null;
-    if (open === 'assistant') return <AssistantScreen api={settings.api} onBack={goHome} />;
+    if (open === 'assistant') return <AssistantScreen api={settings.api} settings={settings} onOpenApp={openApp} onBack={goHome} />;
     if (open === 'apiPreset')
       return (
         <ApiPresetScreen
