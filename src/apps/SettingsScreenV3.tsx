@@ -10,6 +10,7 @@ export function SettingsScreenV3({
   enableVectorMemory = false,
   autoRefreshEnabled = false,
   autoRefreshInterval = 300,
+  autoTranslateEnabled = false,
   onUpdateSetting,
   onBack,
   onOpenIdentities,
@@ -27,6 +28,7 @@ export function SettingsScreenV3({
   enableVectorMemory?: boolean;
   autoRefreshEnabled?: boolean;
   autoRefreshInterval?: number;
+  autoTranslateEnabled?: boolean;
   onUpdateSetting: (key: string, value: any) => void;
   onBack: () => void;
   onOpenIdentities?: () => void;
@@ -118,6 +120,19 @@ export function SettingsScreenV3({
       {/* 聊天设置 */}
       <div className="text-[13px] font-medium mb-2 mt-4 txt-accent">聊天设置</div>
       <ListGroup>
+        <Row
+          label="自动翻译"
+          hint="AI回复外语时自动翻译成中文"
+          right={
+            <input
+              type="checkbox"
+              checked={autoTranslateEnabled}
+              onChange={(e) => onUpdateSetting('autoTranslateEnabled', e.target.checked)}
+              className="w-5 h-5 accent-[var(--accent)] cursor-pointer"
+            />
+          }
+        />
+
         <Row
           label="自动保存角色图片"
           hint="角色发送的图片自动加入相册"

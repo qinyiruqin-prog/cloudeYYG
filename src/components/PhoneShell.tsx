@@ -655,6 +655,7 @@ export function PhoneShell({
           autoSaveCharImages={settings.autoSaveCharImages !== false}
           offlineMode={settings.offlineMode || false}
           enableVectorMemory={settings.enableVectorMemory || false}
+          autoTranslateEnabled={settings.autoTranslateEnabled || false}
           onUpdateSetting={(key, value) => updateSettings({ [key]: value })}
           onBack={goHome}
         />

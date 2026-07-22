@@ -1196,6 +1196,24 @@ ${maxReplyCount > 1 ? '多条消息可以形成连贯的对话，例如第一条
       };
       onSend([...next, assistantMsg]);
 
+      // 自动翻译功能
+      if (settings.autoTranslateEnabled && assistantMsg.content) {
+        // 检测是否包含外语（简单检测：包含英文字母比例超过30%）
+        const englishChars = (assistantMsg.content.match(/[a-zA-Z]/g) || []).length;
+        const totalChars = assistantMsg.content.length;
+        if (totalChars > 0 && englishChars / totalChars > 0.3) {
+          // 自动翻译
+          try {
+            const prompt = "你是一个专业的高保真中英互译翻译官。请将用户的输入文本进行精准、自然的双语互译。如果是中文文本，请翻译成纯英文；如果是英文、拼音、外文或其他混合文本，请翻译成纯中文。请不要带任何多余的解释、回复或格式（如「好的，这是翻译：」），直接输出翻译后的目标纯文本。";
+            const result = await askAI(api, prompt, assistantMsg.content);
+            setTranslations((prev) => ({ ...prev, [assistantMsg.id]: result }));
+            setShowTranslation((prev) => ({ ...prev, [assistantMsg.id]: true }));
+          } catch (err) {
+            console.error('Auto-translation error:', err);
+          }
+        }
+      }
+
       // Media generation
       const media: MessageMedia[] = [];
       try {
@@ -1291,6 +1309,24 @@ ${maxReplyCount > 1 ? '多条消息可以形成连贯的对话，例如第一条
       };
       onSend([...next, assistantMsg]);
 
+      // 自动翻译功能
+      if (settings.autoTranslateEnabled && assistantMsg.content) {
+        // 检测是否包含外语（简单检测：包含英文字母比例超过30%）
+        const englishChars = (assistantMsg.content.match(/[a-zA-Z]/g) || []).length;
+        const totalChars = assistantMsg.content.length;
+        if (totalChars > 0 && englishChars / totalChars > 0.3) {
+          // 自动翻译
+          try {
+            const prompt = "你是一个专业的高保真中英互译翻译官。请将用户的输入文本进行精准、自然的双语互译。如果是中文文本，请翻译成纯英文；如果是英文、拼音、外文或其他混合文本，请翻译成纯中文。请不要带任何多余的解释、回复或格式（如「好的，这是翻译：」），直接输出翻译后的目标纯文本。";
+            const result = await askAI(api, prompt, assistantMsg.content);
+            setTranslations((prev) => ({ ...prev, [assistantMsg.id]: result }));
+            setShowTranslation((prev) => ({ ...prev, [assistantMsg.id]: true }));
+          } catch (err) {
+            console.error('Auto-translation error:', err);
+          }
+        }
+      }
+
       // Media generation
       const media: MessageMedia[] = [];
       try {
@@ -1377,31 +1413,7 @@ ${maxReplyCount > 1 ? '多条消息可以形成连贯的对话，例如第一条
                         {translations[m.id]}
                       </div>
                     )}
-                    {/* Action trigger row */}
-                    <div className="flex items-center gap-2 mt-1">
-                      {m.role === 'assistant' && (
-                        <button
-                          type="button"
-                          onClick={() => toggleTranslate(m)}
-                          className="text-[10px] txt-faint hover:text-indigo-400 transition-colors flex items-center gap-0.5 px-1 py-0.5 cursor-pointer"
-                        >
-                          {translatingId === m.id ? '⏳ 正在翻译...' : showTranslation[m.id] ? '隐藏翻译' : '🌐 翻译'}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm('确定删除此条消息？此操作无法撤销。')) {
-                            const nextMsgs = thread.messages.filter((x) => x.id !== m.id);
-                            onSend(nextMsgs);
-                          }
-                        }}
-                        className="text-[10px] txt-faint hover:text-red-400 transition-colors flex items-center gap-0.5 px-1 py-0.5 cursor-pointer"
-                        title="删除消息"
-                      >
-                        🗑️ 删除
-                      </button>
-                    </div>
+                    {/* Action trigger row - 已隐藏，翻译功能移至设置中的自动翻译 */}
                   </div>
                 )}
                 {m.media?.map((md, i) => <MediaBubble key={i} media={md} />)}

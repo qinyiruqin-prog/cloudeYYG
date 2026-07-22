@@ -763,6 +763,7 @@ export interface AppSettings {
   floatingBallEnabled?: boolean; // 悬浮球
   innerThoughtOpacity?: number; // 心声透明度 0-1
   autoSaveCharImages?: boolean; // 自动保存角色发送的图片到相册
+  autoTranslateEnabled?: boolean; // 自动翻译外语回复
 
   // v3.0 自动刷新系统
   autoRefreshEnabled?: boolean; // 是否开启全局自动刷新
