@@ -13,5 +13,6 @@ export { WeiboScreen } from './WeiboScreen';
 export { TwitterScreen } from './TwitterScreen';
 export { MemoryScreen } from './MemoryScreen';
 export { WeightManageScreen } from './WeightManageScreen';
+export { KitchenScreen } from './KitchenScreen';
 
 // 所有核心v3.0功能已从单独文件导出

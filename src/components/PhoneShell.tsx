@@ -49,6 +49,7 @@ import {
   WeightManageScreen,
   DiscoverScreen,
   AltAccountsScreen,
+  KitchenScreen,
 } from '../apps/V3NewApps';
 import { Sheet } from './Sheet';
 import { useMusicPlayer } from '../useMusicPlayer';
@@ -664,6 +665,18 @@ export function PhoneShell({
     if (open === 'offline_mode') return <OfflineModeScreen onBack={goHome} />;
     if (open === 'couple_space') return <CoupleSpaceScreen onBack={goHome} />;
     if (open === 'home_system') return <HomeSystemScreen onBack={goHome} />;
+    if (open === 'kitchen')
+      return (
+        <KitchenScreen
+          api={settings.api}
+          characters={settings.characters}
+          recipes={settings.recipes || []}
+          records={settings.cookingRecords || []}
+          onChange={(recipes) => updateSettings({ recipes })}
+          onChangeRecords={(cookingRecords) => updateSettings({ cookingRecords })}
+          onBack={goHome}
+        />
+      );
     if (open === 'turtle_soup') return <TurtleSoupScreen onBack={goHome} />;
     if (open === 'games') return <GamesScreen onBack={goHome} />;
     if (open === 'weibo')
