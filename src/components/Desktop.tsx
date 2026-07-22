@@ -225,6 +225,12 @@ function Page2({
   let isPMSDay2 = false;
   let isPMSDay1 = false;
 
+  // 预览模式：今天22号是经期第1天，持续5天(22-26)，后3天(19-21)是PMS
+  // 有记录时根据实际数据计算
+  let periodStartDay = todayDate;
+  let periodEndDay = periodStartDay + durationDays - 1;
+  let pmsStartDay = periodStartDay - 3;
+
   if (periodRecords.length > 0) {
     isPeriodDay = false;
     const sorted = [...periodRecords].sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -235,6 +241,12 @@ function Page2({
     const diffDays = Math.floor((todayTime - lastStartTime) / 86400000) + 1;
     const cycleDay = diffDays > 0 ? ((diffDays - 1) % cycleDays) + 1 : 1;
 
+    // 当前周期的经期范围
+    periodStartDay = lastStart.getDate();
+    periodEndDay = new Date(lastStartTime + (durationDays - 1) * 86400000).getDate();
+    pmsStartDay = new Date(lastStartTime - 3 * 86400000).getDate();
+
+    // 判断是否确实在当前经期内
     if (cycleDay <= durationDays) {
       if (latest.endDate) {
         const endTime = new Date(new Date(latest.endDate).getFullYear(), new Date(latest.endDate).getMonth(), new Date(latest.endDate).getDate()).getTime();
@@ -249,6 +261,11 @@ function Page2({
     isPMSDay2 = daysUntilNext === 2 && !isPeriodDay;
     isPMSDay1 = daysUntilNext === 1 && !isPeriodDay;
   }
+
+  // 判断指定日期是否在经期范围内
+  const isInPeriodRange = (day: number) => day >= periodStartDay && day <= periodEndDay;
+  // 判断指定日期是否在PMS范围内（经期前3天）
+  const isInPMSRange = (day: number) => day >= pmsStartDay && day < periodStartDay;
 
   const d = new Date();
   const year = d.getFullYear();
@@ -296,10 +313,10 @@ function Page2({
                     : undefined}
                 >
                   {day}
-                  {isPeriodDay && day === todayDate && (
+                  {isInPeriodRange(day) && (
                     <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: '#f472b6' }} />
                   )}
-                  {(isPMSDay1 || isPMSDay2 || isPMSDay3) && day === todayDate && !isPeriodDay && (
+                  {isInPMSRange(day) && !isInPeriodRange(day) && (
                     <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: '#fb923c' }} />
                   )}
                 </div>
