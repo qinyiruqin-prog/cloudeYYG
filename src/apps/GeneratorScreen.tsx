@@ -192,20 +192,81 @@ export function GeneratorScreen({
     if (!currentSetting) return;
     const content = currentSetting.content;
 
+    // 从 Markdown 内容中提取名字
+    const extractName = (text: string): string => {
+      // 尝试匹配 "姓名：XXX" 或 "姓名: XXX" 或 "**姓名**：XXX"
+      const nameMatch = text.match(/(?:姓名|名字|Name)[:：]\s*[*_]*([^\n*_,，]+)/i);
+      if (nameMatch && nameMatch[1]) return nameMatch[1].trim();
+
+      // 尝试匹配 "我是XXX" 或 "叫XXX"
+      const introMatch = text.match(/(?:我是|我叫|叫做|名叫)\s*([^\n,，。！？]+)/);
+      if (introMatch && introMatch[1]) return introMatch[1].trim();
+
+      // 默认使用提示词的前10个字符
+      return currentSetting.prompt.slice(0, 10) || '未命名';
+    };
+
+    // 从内容中提取外貌描述作为生图提示词
+    const extractImagePrompt = (text: string): string => {
+      // 尝试提取外貌相关段落
+      const appearanceMatch = text.match(/(?:外貌|appearance|外观|形象)[:：]?\s*([^\n#]+)/i);
+      if (appearanceMatch && appearanceMatch[1]) {
+        return appearanceMatch[1].trim().slice(0, 200);
+      }
+
+      // 提取基本信息部分的前100字作为描述
+      const basicMatch = text.match(/##\s*1[\s\S]{0,300}/);
+      if (basicMatch) {
+        return basicMatch[0].replace(/##.*?\n/, '').trim().slice(0, 150);
+      }
+
+      return content.slice(0, 100).replace(/[#*\n]/g, ' ').trim();
+    };
+
+    // 提取签名（性格特点或一句话介绍）
+    const extractSignature = (text: string): string => {
+      const sigMatch = text.match(/(?:性格|个性|特点)[:：]?\s*([^\n]+)/i);
+      if (sigMatch && sigMatch[1]) return sigMatch[1].trim().slice(0, 50);
+      return content.replace(/[#*\n]/g, ' ').slice(0, 50).trim();
+    };
+
+    const extractedName = extractName(content);
+    const imagePrompt = extractImagePrompt(content);
+    const signature = extractSignature(content);
+
     if (currentSetting.type === "user_persona") {
-      onAddUser({ id: uid(), nickname: currentSetting.title, signature: content.slice(0, 50), imagePromptTemplate: "", isAlt: false, createdAt: Date.now() });
-      triggerToast("已导入为用户身份！");
+      onAddUser({
+        id: uid(),
+        nickname: extractedName,
+        signature: signature,
+        persona: content, // 完整人设存入 persona 字段
+        imagePromptTemplate: imagePrompt,
+        isAlt: false,
+        createdAt: Date.now()
+      });
+      triggerToast(`已导入用户「${extractedName}」！`);
     } else if (currentSetting.type === "xr_persona") {
       onAddCharacter({
-        id: uid(), name: currentSetting.title, avatar: "", signature: content.slice(0, 50),
-        persona: content, greeting: "你好！我是" + currentSetting.title + "。",
-        imagePromptTemplate: "", createdAt: Date.now(),
+        id: uid(),
+        name: extractedName,
+        avatar: "",
+        signature: signature,
+        persona: content, // 完整人设
+        greeting: "你好！我是" + extractedName + "。",
+        imagePromptTemplate: imagePrompt,
+        createdAt: Date.now(),
       });
-      triggerToast("已导入为角色！");
+      triggerToast(`已导入角色「${extractedName}」！`);
     } else if (currentSetting.type === "worldbook") {
-      const entries: WorldEntry[] = [{ id: uid(), key: currentSetting.title, content, priority: 5, partitionId: "", ts: Date.now() }];
+      const entries: WorldEntry[] = [{
+        id: uid(),
+        key: extractedName,
+        content,
+        priority: 5,
+        ts: Date.now()
+      }];
       onAddWorldEntries(entries);
-      triggerToast("已导入为世界书词条！");
+      triggerToast(`已导入世界书「${extractedName}」！`);
     }
   };
 
