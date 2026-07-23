@@ -144,9 +144,10 @@ export interface MoneyTransfer {
   type: 'transfer' | 'redpacket'; // 转账 | 红包
   amount: number;
   message?: string; // 转账备注 或 红包祝福语
-  status: 'pending' | 'received' | 'expired'; // 待领取 | 已领取 | 已过期（红包24小时过期）
+  status: 'pending' | 'received' | 'expired' | 'refunded'; // 待领取 | 已领取 | 已过期（红包24小时过期） | 已退回
   receivedAt?: number; // 领取时间
   expireAt?: number; // 过期时间（红包）
+  refundedAt?: number; // 退回时间
 }
 
 export interface ChatMessage {
