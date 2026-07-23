@@ -610,6 +610,7 @@ function CharacterEditor({
   const faceInput = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState('');
   const [genAvatar, setGenAvatar] = useState(false);
+  const [personaPreviewMode, setPersonaPreviewMode] = useState(false);
 
   const pickImg = async (file: File | undefined, key: 'avatar' | 'faceRef') => {
     if (!file) return;
