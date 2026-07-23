@@ -357,6 +357,8 @@ export interface ForumReply {
   authorAvatar?: string;
   text: string;
   ts: number;
+  replies?: ForumReply[];  // 楼中楼回复
+  replyTo?: string;        // 回复给谁（显示 @用户名）
 }
 
 /* ---------- Story events (cross-character plot perception) ---------- */

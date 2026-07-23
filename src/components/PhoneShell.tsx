@@ -130,16 +130,35 @@ export function PhoneShell({
         const botUser = generateBotUser();
         const replies = [];
 
-        // 每个预制帖子随机添加 2-5 条评论
-        const replyCount = Math.floor(Math.random() * 4) + 2;
+        // 每个预制帖子随机添加 3-6 条一级评论
+        const replyCount = Math.floor(Math.random() * 4) + 3;
         for (let i = 0; i < replyCount; i++) {
           const replyBot = generateBotUser();
+          const subReplies = [];
+
+          // 50% 概率这条评论有楼中楼回复
+          if (Math.random() > 0.5) {
+            const subReplyCount = Math.floor(Math.random() * 3) + 1; // 1-3 条楼中楼
+            for (let j = 0; j < subReplyCount; j++) {
+              const subBot = generateBotUser();
+              subReplies.push({
+                id: uid(),
+                authorName: subBot.name,
+                authorAvatar: subBot.avatar,
+                text: COMMENT_TEMPLATES[Math.floor(Math.random() * COMMENT_TEMPLATES.length)],
+                replyTo: replyBot.name,
+                ts: Date.now() - (idx * 3600000) - (i * 600000) - (j * 300000)
+              });
+            }
+          }
+
           replies.push({
             id: uid(),
             authorName: replyBot.name,
             authorAvatar: replyBot.avatar,
             text: COMMENT_TEMPLATES[Math.floor(Math.random() * COMMENT_TEMPLATES.length)],
-            ts: Date.now() - (idx * 3600000) - (i * 600000) // 错开时间
+            ts: Date.now() - (idx * 3600000) - (i * 600000),
+            replies: subReplies.length > 0 ? subReplies : undefined
           });
         }
 
@@ -630,19 +649,37 @@ export function PhoneShell({
             const updatedPosts = settings.forumPosts.map(post => {
               if (!existingPosts.includes(post)) return post;
 
-              const newRepliesCount = Math.floor(Math.random() * 6) + 3; // 3-8条评论
+              const newRepliesCount = Math.floor(Math.random() * 4) + 2; // 2-5条一级评论
               const newReplies = [];
 
               for (let i = 0; i < newRepliesCount; i++) {
                 const botUser = generateBotUser();
                 const text = COMMENT_TEMPLATES[Math.floor(Math.random() * COMMENT_TEMPLATES.length)];
+                const subReplies = [];
+
+                // 40% 概率带楼中楼
+                if (Math.random() > 0.6) {
+                  const subCount = Math.floor(Math.random() * 2) + 1; // 1-2条楼中楼
+                  for (let j = 0; j < subCount; j++) {
+                    const subBot = generateBotUser();
+                    subReplies.push({
+                      id: uid(),
+                      authorName: subBot.name,
+                      authorAvatar: subBot.avatar,
+                      text: COMMENT_TEMPLATES[Math.floor(Math.random() * COMMENT_TEMPLATES.length)],
+                      replyTo: botUser.name,
+                      ts: Date.now() - i * 30000 - j * 15000
+                    });
+                  }
+                }
 
                 newReplies.push({
                   id: uid(),
                   authorName: botUser.name,
                   authorAvatar: botUser.avatar,
                   text: text,
-                  ts: Date.now() - i * 30000
+                  ts: Date.now() - i * 30000,
+                  replies: subReplies.length > 0 ? subReplies : undefined
                 });
               }
 

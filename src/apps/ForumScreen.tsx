@@ -36,6 +36,7 @@ export function ForumScreen({
   const [aiWriting, setAiWriting] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null); // 正在回复哪条评论
 
   const [selectedAuthor, setSelectedAuthor] = useState<{ id: string; name: string; avatar?: string } | null>(me ? { id: me.id, name: me.nickname, avatar: me.avatar } : null);
 
@@ -70,10 +71,42 @@ export function ForumScreen({
 
   const reply = (p: ForumPost) => {
     if (!replyText.trim() || !selectedAuthor) return;
-    const r = { id: uid(), authorName: selectedAuthor.name, authorAvatar: selectedAuthor.avatar, text: replyText.trim(), ts: Date.now() };
-    update(p.id, (x) => ({ ...x, replies: [...x.replies, r] }));
+
+    if (replyingTo) {
+      // 回复某条评论（楼中楼）
+      const newReply = {
+        id: uid(),
+        authorName: selectedAuthor.name,
+        authorAvatar: selectedAuthor.avatar,
+        text: replyText.trim(),
+        replyTo: replyingTo.name,
+        ts: Date.now()
+      };
+
+      // 递归查找并添加到对应评论的 replies
+      const addReplyToComment = (replies: any[]): any[] => {
+        return replies.map(r => {
+          if (r.id === replyingTo.id) {
+            return { ...r, replies: [...(r.replies || []), newReply] };
+          }
+          if (r.replies && r.replies.length > 0) {
+            return { ...r, replies: addReplyToComment(r.replies) };
+          }
+          return r;
+        });
+      };
+
+      update(p.id, (x) => ({ ...x, replies: addReplyToComment(x.replies) }));
+      setActive((a) => a ? { ...a, replies: addReplyToComment(a.replies) } : a);
+    } else {
+      // 一级评论
+      const r = { id: uid(), authorName: selectedAuthor.name, authorAvatar: selectedAuthor.avatar, text: replyText.trim(), ts: Date.now() };
+      update(p.id, (x) => ({ ...x, replies: [...x.replies, r] }));
+      setActive((a) => a ? { ...a, replies: [...a.replies, r] } : a);
+    }
+
     setReplyText('');
-    setActive((a) => a ? { ...a, replies: [...a.replies, r] } : a);
+    setReplyingTo(null);
   };
 
   const aiReply = async (p: ForumPost) => {
@@ -107,12 +140,44 @@ export function ForumScreen({
             <div className="border-t border-[var(--border)] pt-4">
               <div className="text-[13px] txt-dim mb-3 flex items-center gap-1"><MessageSquare size={14} /> {p.replies.length}条回复</div>
               {p.replies.length === 0 && <div className="text-[13px] txt-faint mb-3">还没有回复，来抢沙发</div>}
-              {p.replies.map((r) => (
-                <div key={r.id} className="flex gap-2.5 mb-3.5">
-                  {r.authorAvatar ? <img src={r.authorAvatar} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" /> : <div className="w-7 h-7 rounded-full icon-bg flex items-center justify-center text-[11px] txt-accent shrink-0">{(r.authorName[0] || '?')}</div>}
-                  <div><div className="text-[12px] txt-faint">{r.authorName}</div><div className="text-[14px] txt-dim mt-0.5">{r.text}</div></div>
-                </div>
-              ))}
+              {p.replies.map((r) => {
+                // 递归渲染评论组件
+                const renderReply = (reply: any, level: number = 0) => (
+                  <div key={reply.id} className={level > 0 ? 'ml-8 mt-2' : 'mb-4'}>
+                    <div className="flex gap-2.5">
+                      {reply.authorAvatar ? (
+                        <img src={reply.authorAvatar} className="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full icon-bg flex items-center justify-center text-[11px] txt-accent shrink-0">
+                          {(reply.authorName[0] || '?')}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] txt-dim font-medium">{reply.authorName}</span>
+                          {reply.replyTo && <span className="text-[11px] txt-faint">回复 @{reply.replyTo}</span>}
+                          <span className="text-[11px] txt-faint ml-auto">{new Date(reply.ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="text-[14px] txt-dim mt-1">{reply.text}</div>
+                        <button
+                          onClick={() => setReplyingTo({ id: reply.id, name: reply.authorName })}
+                          className="text-[11px] txt-faint hover:txt-accent mt-1.5 tap"
+                        >
+                          回复
+                        </button>
+                        {/* 递归渲染子回复 */}
+                        {reply.replies && reply.replies.length > 0 && (
+                          <div className="mt-2">
+                            {reply.replies.map((subReply: any) => renderReply(subReply, level + 1))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+
+                return renderReply(r);
+              })}
             </div>
           </div>
           <div className="px-3 py-2 border-t border-[var(--border)] shrink-0">
@@ -132,9 +197,16 @@ export function ForumScreen({
                 {characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+            {/* 正在回复提示 */}
+            {replyingTo && (
+              <div className="flex items-center gap-2 mb-2 text-[11px] txt-faint">
+                <span>回复 @{replyingTo.name}</span>
+                <button onClick={() => setReplyingTo(null)} className="tap txt-accent">取消</button>
+              </div>
+            )}
             {/* 回复输入框 */}
             <div className="flex items-center gap-2">
-              <input value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && reply(p)} placeholder="回复…" className="flex-1 glass rounded-full px-4 h-10 text-[14px] outline-none bg-transparent" />
+              <input value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && reply(p)} placeholder={replyingTo ? `回复 @${replyingTo.name}...` : "回复…"} className="flex-1 glass rounded-full px-4 h-10 text-[14px] outline-none bg-transparent" />
               <button onClick={() => aiReply(p)} disabled={aiWriting} className="tap w-10 h-10 rounded-full glass flex items-center justify-center disabled:opacity-50"><Sparkles size={18} className="txt-accent" /></button>
               <button onClick={() => reply(p)} disabled={!replyText.trim()} className="tap w-10 h-10 rounded-full flex items-center justify-center text-[var(--bg)] disabled:opacity-40" style={{ background: 'var(--accent)' }}><Send size={18} /></button>
             </div>
