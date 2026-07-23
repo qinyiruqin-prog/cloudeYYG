@@ -192,10 +192,21 @@ export function PhoneShell({
       const activeUser = settings.users.find((u) => u.id === settings.activeUserId) ?? settings.users[0];
       if (!activeUser || !settings.characters || settings.characters.length === 0) return;
 
-      // Randomly choose between Chat message (75%) and Friend request (25%)
-      const isRequest = Math.random() < 0.25;
+      // Randomly choose interaction type with weights
+      const rand = Math.random();
+      let interactionType: 'chat' | 'friendRequest' | 'moment' | 'sms' | 'mail' | 'forum' | 'money';
 
-      if (isRequest) {
+      if (rand < 0.40) interactionType = 'chat';           // 40% 聊天消息
+      else if (rand < 0.50) interactionType = 'friendRequest'; // 10% 好友申请
+      else if (rand < 0.65) interactionType = 'moment';    // 15% 朋友圈
+      else if (rand < 0.75) interactionType = 'sms';       // 10% 短信
+      else if (rand < 0.85) interactionType = 'mail';      // 10% 邮件
+      else if (rand < 0.93) interactionType = 'forum';     // 8% 论坛
+      else interactionType = 'money';                       // 7% 红包/转账
+
+      const char = settings.characters[Math.floor(Math.random() * settings.characters.length)];
+
+      if (interactionType === 'friendRequest') {
         // Trigger incoming friend request (probing)
         try {
           const char = settings.characters[Math.floor(Math.random() * settings.characters.length)];
@@ -231,6 +242,254 @@ export function PhoneShell({
           });
         } catch (err) {
           console.warn('Auto active friend request failed:', err);
+        }
+      } else if (interactionType === 'moment') {
+        // 自动发朋友圈
+        try {
+          const sys = `你是${char.name}。请生成一条朋友圈动态内容。20-80字，描述你今天做的事、遇到的人、心情感受、或者分享一个有趣的瞬间。自然真实，像真人发的。只输出朋友圈正文。`;
+          const content = await askAI(settings.api, sys, '请生成朋友圈内容', { temperature: 0.95, maxTokens: 200 });
+
+          const newMoment = {
+            id: 'auto-moment-' + Math.random().toString(36).substring(2),
+            authorId: char.id,
+            authorName: char.name,
+            authorAvatar: char.avatar,
+            text: content.trim(),
+            images: [],
+            likes: [],
+            comments: [],
+            ts: Date.now(),
+            aiGenerated: true,
+          };
+
+          updateSettings({ moments: [newMoment, ...(settings.moments || [])] });
+
+          setBanner({
+            title: `📱 ${char.name} 发了朋友圈`,
+            avatar: char.avatar,
+            content: content.trim().slice(0, 50) + (content.length > 50 ? '...' : ''),
+            onClick: () => {
+              setOpen('moments');
+              setBanner(null);
+            }
+          });
+        } catch (err) {
+          console.warn('Auto moment failed:', err);
+        }
+      } else if (interactionType === 'sms') {
+        // 自动发短信（可能用小号）
+        try {
+          const useAltAccount = Math.random() < 0.3; // 30% 概率用小号
+          let senderName = char.name;
+          let senderAvatar = char.avatar;
+
+          if (useAltAccount) {
+            const res = await generateIncomingRequest(settings.api, char, activeUser.nickname, activeUser.signature);
+            senderName = res.charAltName;
+            senderAvatar = res.charAltAvatar;
+          }
+
+          const sys = `你是${char.name}${useAltAccount ? `，正在使用小号「${senderName}」` : ''}。请生成一条短信内容。10-50字，可以是问候、分享、邀请、或者突然想到的事情。自然真实。只输出短信正文。`;
+          const content = await askAI(settings.api, sys, '请生成短信内容', { temperature: 0.9, maxTokens: 150 });
+
+          // 找到或创建联系人
+          let contact = settings.contacts.find(c => c.characterId === char.id);
+          if (!contact) {
+            contact = {
+              id: 'auto-contact-' + Math.random().toString(36).substring(2),
+              name: useAltAccount ? senderName : char.name,
+              avatar: useAltAccount ? senderAvatar : char.avatar,
+              phone: '138' + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
+              signature: char.signature || '',
+              characterId: char.id,
+              createdAt: Date.now(),
+            };
+            updateSettings({ contacts: [...settings.contacts, contact] });
+          }
+
+          const newSmsMsg = {
+            id: 'auto-sms-' + Math.random().toString(36).substring(2),
+            from: 'them' as const,
+            content: content.trim(),
+            ts: Date.now(),
+          };
+
+          const existingThread = (settings.smsThreads || []).find(t => t.contactId === contact!.id);
+          if (existingThread) {
+            const updatedThreads = settings.smsThreads.map(t =>
+              t.id === existingThread.id
+                ? { ...t, messages: [...t.messages, newSmsMsg], updatedAt: Date.now() }
+                : t
+            );
+            updateSettings({ smsThreads: updatedThreads });
+          } else {
+            const newThread = {
+              id: 'auto-sms-thread-' + Math.random().toString(36).substring(2),
+              contactId: contact.id,
+              messages: [newSmsMsg],
+              updatedAt: Date.now(),
+            };
+            updateSettings({ smsThreads: [newThread, ...(settings.smsThreads || [])] });
+          }
+
+          setBanner({
+            title: `💬 ${useAltAccount ? senderName + ' (神秘号码)' : char.name} 发来短信`,
+            avatar: useAltAccount ? senderAvatar : char.avatar,
+            content: content.trim(),
+            onClick: () => {
+              setOpen('sms');
+              setBanner(null);
+            }
+          });
+        } catch (err) {
+          console.warn('Auto SMS failed:', err);
+        }
+      } else if (interactionType === 'mail') {
+        // 自动发邮件（可能用小号）
+        try {
+          const useAltAccount = Math.random() < 0.4; // 40% 概率用小号
+          let senderName = char.name;
+
+          if (useAltAccount) {
+            const res = await generateIncomingRequest(settings.api, char, activeUser.nickname, activeUser.signature);
+            senderName = res.charAltName;
+          }
+
+          const sys = `你是${char.name}${useAltAccount ? `，正在使用小号「${senderName}」` : ''}。请生成一封邮件。格式：主题：[邮件主题]\n正文：[邮件内容]。可以是正式通知、邀请函、或者私人信件。正文100-300字。只输出主题和正文。`;
+          const content = await askAI(settings.api, sys, '请生成邮件', { temperature: 0.9, maxTokens: 500 });
+
+          const subjectMatch = content.match(/主题[：:]\s*(.+)/);
+          const bodyMatch = content.match(/正文[：:]\s*([\s\S]+)/);
+
+          const subject = subjectMatch ? subjectMatch[1].trim() : '来自 ' + senderName;
+          const body = bodyMatch ? bodyMatch[1].trim() : content;
+
+          const newMail = {
+            id: 'auto-mail-' + Math.random().toString(36).substring(2),
+            from: senderName + '@example.com',
+            to: activeUser.nickname + '@example.com',
+            subject,
+            body,
+            ts: Date.now(),
+            read: false,
+          };
+
+          updateSettings({ mails: [newMail, ...(settings.mails || [])] });
+
+          setBanner({
+            title: `📧 ${senderName} 发来邮件`,
+            avatar: char.avatar,
+            content: subject,
+            onClick: () => {
+              setOpen('mail');
+              setBanner(null);
+            }
+          });
+        } catch (err) {
+          console.warn('Auto mail failed:', err);
+        }
+      } else if (interactionType === 'forum') {
+        // 自动发论坛帖子
+        try {
+          const sys = `你是${char.name}。请生成一个论坛帖子。格式：标题：[帖子标题]\n内容：[帖子内容]。可以是求助、分享经验、吐槽、或者讨论话题。内容50-200字。只输出标题和内容。`;
+          const content = await askAI(settings.api, sys, '请生成论坛帖子', { temperature: 0.9, maxTokens: 400 });
+
+          const titleMatch = content.match(/标题[：:]\s*(.+)/);
+          const bodyMatch = content.match(/内容[：:]\s*([\s\S]+)/);
+
+          const title = titleMatch ? titleMatch[1].trim() : '来自 ' + char.name + ' 的分享';
+          const body = bodyMatch ? bodyMatch[1].trim() : content;
+
+          const newPost = {
+            id: 'auto-forum-' + Math.random().toString(36).substring(2),
+            authorId: char.id,
+            authorName: char.name,
+            authorAvatar: char.avatar,
+            title,
+            content: body,
+            likes: [],
+            comments: [],
+            ts: Date.now(),
+            views: 0,
+          };
+
+          updateSettings({ forumPosts: [newPost, ...(settings.forumPosts || [])] });
+
+          setBanner({
+            title: `💭 ${char.name} 发了论坛帖子`,
+            avatar: char.avatar,
+            content: title,
+            onClick: () => {
+              setOpen('forum');
+              setBanner(null);
+            }
+          });
+        } catch (err) {
+          console.warn('Auto forum post failed:', err);
+        }
+      } else if (interactionType === 'money') {
+        // 自动发红包/转账
+        try {
+          const amounts = [6.66, 8.88, 13.14, 52.0, 88.88];
+          const amount = amounts[Math.floor(Math.random() * amounts.length)];
+          const isRedpacket = Math.random() > 0.5;
+
+          const sys = `你是${char.name}。请生成一句${isRedpacket ? '红包' : '转账'}的温馨话。10-30字，表达关心、爱意、或者分享喜悦。只输出那句话。`;
+          const message = await askAI(settings.api, sys, '请生成祝福语', { temperature: 0.9, maxTokens: 100 });
+
+          const transfer = {
+            id: 'auto-money-' + Math.random().toString(36).substring(2),
+            type: isRedpacket ? 'redpacket' as const : 'transfer' as const,
+            amount,
+            message: message.trim() || (isRedpacket ? '给你发了个红包！' : '给你转了点钱'),
+            status: 'pending' as const,
+            expireAt: isRedpacket ? Date.now() + 24 * 60 * 60 * 1000 : undefined,
+          };
+
+          // 找到或创建聊天会话
+          let myThreads = settings.chatThreads.filter((t: any) => t.userId === activeUser.id && t.characterId === char.id && !t.charAltName);
+          let threadToUse = myThreads[0];
+
+          if (!threadToUse) {
+            const newThreadId = 'auto-money-thr-' + Math.random().toString(36).substring(2);
+            threadToUse = {
+              id: newThreadId,
+              characterId: char.id,
+              userId: activeUser.id,
+              messages: [],
+              updatedAt: Date.now(),
+              sharedMemory: [],
+            };
+            updateSettings({ chatThreads: [threadToUse, ...settings.chatThreads] });
+          }
+
+          const assistantMsg = {
+            id: 'auto-money-msg-' + Math.random().toString(36).substring(2),
+            role: 'assistant' as const,
+            content: isRedpacket ? `[红包] ¥${amount}` : `[转账] ¥${amount}`,
+            ts: Date.now(),
+            moneyTransfer: transfer,
+          };
+
+          const updatedThreads = settings.chatThreads.map((t: any) =>
+            t.id === threadToUse.id
+              ? { ...t, messages: [...t.messages, assistantMsg], updatedAt: Date.now() }
+              : t
+          );
+          updateSettings({ chatThreads: updatedThreads });
+
+          setBanner({
+            title: `${isRedpacket ? '🧧' : '💰'} ${char.name} 给你发了${isRedpacket ? '红包' : '转账'}`,
+            avatar: char.avatar,
+            content: `¥${amount} - ${message.trim().slice(0, 30)}`,
+            onClick: () => {
+              setInitialChatThreadId(threadToUse.id);
+              setOpen('chat');
+              setBanner(null);
+            }
+          });
+        } catch (err) {
+          console.warn('Auto money transfer failed:', err);
         }
       } else {
         // Trigger proactive chat message in an existing thread or start a new one
