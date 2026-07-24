@@ -1204,16 +1204,16 @@ function ChatConversation({
     // 线上/线下模式
     const mode = thread.interactionMode || 'online';
     if (mode === 'offline') {
-      sys += `\n\n[线下模式 - 强制格式要求]
-当前是线下模式，模拟现实见面场景。你必须经常使用动作描写，让对话更生动自然。
+      sys += `\n\n[线下模式 - 格式强制要求]
+当前是线下模式，模拟现实见面场景。你必须经常使用动作描写，让对话更生动。
 
-【强制格式规则】：
-1. 动作必须用 (动作) 格式，禁止使用 *动作*
-2. 动作和语言之间必须空一行
-3. 每次回复建议包含1-2个动作，让互动更真实
+【输出格式 - 必须严格遵守】：
+1. 动作单独成段，用 (动作) 格式
+2. 语言单独成段
+3. 动作段和语言段之间空一行
+4. 禁止在同一段内混合语言和动作
 
-【格式示例】：
-正确✓：
+【正确示例】：
 你好呀！
 
 (微笑着挥手)
@@ -1222,10 +1222,13 @@ function ChatConversation({
 
 (抬头看向天空)
 
-错误✗：你好呀！(微笑着挥手)今天天气真好呢。
-错误✗：你好呀！*微笑着挥手*
+想去公园走走吗？
 
-你们正面对面交流，要充分展现肢体语言、表情、动作等现实互动，让对话更有画面感。
+【错误示例 - 禁止这样输出】：
+你好呀！(微笑着挥手)今天天气真好呢。
+你好呀！*微笑着挥手*
+
+你要充分展现肢体语言、表情、动作等现实互动。
 注意：线下模式中你说出去的话无法撤回，请谨慎表达。`;
     } else {
       sys += `\n\n[线上模式]
@@ -1361,22 +1364,15 @@ ${maxReplyCount > 1 ? '多条消息可以形成连贯的对话，例如第一条
         ];
         const rich = await callChatRich(api.chat, history, { temperature: 0.85, maxTokens: 800 });
 
-        // 线下模式格式化：括号动作和语言之间加空行
+        // 线下模式格式化：禁用自动格式化，完全依赖AI遵守系统提示
         let formattedContent = rich.content;
-        if (currentMode === 'offline') {
-          // 先统一处理所有换行，去掉多余空行
-          formattedContent = formattedContent.replace(/\n{2,}/g, '\n').trim();
-
-          // 格式化规则：
-          // 1. 右括号 ) 后面如果紧跟非括号内容，加双换行
-          formattedContent = formattedContent.replace(/\)(\s*)([^\s\n(])/g, ')\n\n$2');
-
-          // 2. 非括号内容后面如果紧跟左括号 (，加双换行
-          formattedContent = formattedContent.replace(/([^\s\n)])(\s*)\(/g, '$1\n\n(');
-
-          // 3. 确保不会有超过2个连续换行
-          formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
-        }
+        // 注释掉格式化逻辑，让AI直接输出正确格式
+        // if (currentMode === 'offline') {
+        //   formattedContent = formattedContent.replace(/\n{2,}/g, '\n').trim();
+        //   formattedContent = formattedContent.replace(/\)(\s*)([^\s\n(])/g, ')\n\n$2');
+        //   formattedContent = formattedContent.replace(/([^\s\n)])(\s*)\(/g, '$1\n\n(');
+        //   formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
+        // }
 
         const assistantMsg: ChatMessage = {
           id: uid(),
