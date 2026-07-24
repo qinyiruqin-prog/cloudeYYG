@@ -67,7 +67,131 @@ export const defaultSettings = (): AppSettings => ({
   orders: [],
   forumPosts: [],
   worldEntries: [],
-  squarePosts: [],
+  squarePosts: [
+    {
+      id: 'square-init-1',
+      authorName: '路过的云',
+      authorAvatar: '☁️',
+      text: '今天天气真好！阳光明媚，心情也跟着好起来了 ☀️',
+      likes: 12,
+      comments: [
+        { id: 'sq-c1', authorName: '微风', text: '确实！出去走走吧', ts: Date.now() - 2 * 3600 * 1000 }
+      ],
+      ts: Date.now() - 5 * 3600 * 1000,
+      aiGenerated: false
+    },
+    {
+      id: 'square-init-2',
+      authorName: '夜猫子',
+      authorAvatar: '🦉',
+      text: '深夜食堂营业中...有人一起吃夜宵吗 🍜',
+      imageDescription: '温馨的深夜拉面店，暖黄色灯光',
+      likes: 23,
+      comments: [],
+      ts: Date.now() - 8 * 3600 * 1000,
+      aiGenerated: false
+    },
+    {
+      id: 'square-init-3',
+      authorName: '书虫',
+      authorAvatar: '📚',
+      text: '刚读完一本好书，推荐给大家！#读书分享',
+      likes: 8,
+      comments: [
+        { id: 'sq-c2', authorName: '爱书人', text: '什么书？求书名！', ts: Date.now() - 6 * 3600 * 1000 }
+      ],
+      ts: Date.now() - 12 * 3600 * 1000,
+      aiGenerated: false
+    }
+  ],
+  socialPosts: [
+    // 微博预置帖子
+    {
+      id: 'weibo-init-1',
+      platform: 'weibo',
+      authorId: 'weibo-user-1',
+      authorName: '美食探店家',
+      authorAvatar: '🍜',
+      content: '今天打卡了一家超赞的日料店！新鲜的三文鱼简直入口即化 🍣✨ #美食推荐 #日料',
+      imageDescription: '精致的日式料理拼盘，三文鱼刺身特写',
+      likes: 156,
+      reposts: 23,
+      comments: [
+        { id: 'wb-c1', authorName: '吃货小王', content: '地址在哪？我也想去！', ts: Date.now() - 2 * 3600 * 1000 }
+      ],
+      isHot: true,
+      topic: '美食推荐',
+      ts: Date.now() - 4 * 3600 * 1000
+    },
+    {
+      id: 'weibo-init-2',
+      platform: 'weibo',
+      authorId: 'weibo-user-2',
+      authorName: '旅行达人',
+      authorAvatar: '✈️',
+      content: '周末去爬山啦！山顶的风景真的太美了，空气清新，心情舒畅 🏔️ #周末去哪玩',
+      imageDescription: '山顶俯瞰城市全景，蓝天白云',
+      likes: 89,
+      reposts: 12,
+      comments: [],
+      topic: '周末去哪玩',
+      ts: Date.now() - 10 * 3600 * 1000
+    },
+    {
+      id: 'weibo-init-3',
+      platform: 'weibo',
+      authorId: 'weibo-user-3',
+      authorName: '数码科技',
+      authorAvatar: '💻',
+      content: '新入手的耳机音质真不错！降噪效果也很棒，推荐给需要的朋友们 🎧',
+      likes: 67,
+      reposts: 8,
+      comments: [
+        { id: 'wb-c2', authorName: '科技迷', content: '什么牌子的？多少钱？', ts: Date.now() - 5 * 3600 * 1000 }
+      ],
+      ts: Date.now() - 15 * 3600 * 1000
+    },
+    // 推特预置帖子
+    {
+      id: 'twitter-init-1',
+      platform: 'twitter',
+      authorId: 'twitter-user-1',
+      authorName: 'CodeNinja',
+      authorAvatar: '👨‍💻',
+      content: 'Just shipped a new feature! 🚀 Feeling productive today #coding #developer',
+      likes: 42,
+      reposts: 7,
+      comments: [],
+      ts: Date.now() - 3 * 3600 * 1000
+    },
+    {
+      id: 'twitter-init-2',
+      platform: 'twitter',
+      authorId: 'twitter-user-2',
+      authorName: 'CoffeeLover',
+      authorAvatar: '☕',
+      content: 'Morning coffee hits different when the sun is shining ☀️✨',
+      imageDescription: '一杯精美的拿铁咖啡，阳光洒在桌面上',
+      likes: 128,
+      reposts: 15,
+      comments: [
+        { id: 'tw-c1', authorName: 'BaristaLife', content: 'Looks amazing! ☕', ts: Date.now() - 1 * 3600 * 1000 }
+      ],
+      ts: Date.now() - 6 * 3600 * 1000
+    },
+    {
+      id: 'twitter-init-3',
+      platform: 'twitter',
+      authorId: 'twitter-user-3',
+      authorName: 'MusicVibes',
+      authorAvatar: '🎵',
+      content: 'New playlist for the weekend! Perfect for chilling 🎶 #music #weekend',
+      likes: 91,
+      reposts: 23,
+      comments: [],
+      ts: Date.now() - 9 * 3600 * 1000
+    }
+  ],
   restaurants: [],
   friendRequests: [],
   periodRecords: [],
@@ -137,6 +261,15 @@ export function loadState(): PersistShape {
     if (!parsed.settings.memos) parsed.settings.memos = [];
     if (!parsed.settings.diaries) parsed.settings.diaries = [];
     if (!parsed.settings.installedWebApps) parsed.settings.installedWebApps = [];
+
+    // 确保社交媒体帖子存在
+    if (!parsed.settings.squarePosts || parsed.settings.squarePosts.length === 0) {
+      parsed.settings.squarePosts = defs.squarePosts;
+    }
+    if (!parsed.settings.socialPosts || parsed.settings.socialPosts.length === 0) {
+      parsed.settings.socialPosts = defs.socialPosts;
+    }
+
     if (!parsed.settings.users || parsed.settings.users.length === 0) {
       const defaultUser = {
         id: 'default-owner',
