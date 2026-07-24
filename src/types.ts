@@ -163,6 +163,8 @@ export interface ChatMessage {
   senderAltId?: ID; // 发送者小号ID（支持用户/角色切换小号发消息）
   mode?: InteractionMode; // 消息的交互模式（线上/线下）
   callRecord?: CallRecord; // 通话记录
+  recalled?: boolean; // 是否已撤回
+  recalledContent?: string; // 被撤回的原始内容
 }
 
 export interface CallRecord {
